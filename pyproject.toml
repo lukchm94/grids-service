@@ -1,0 +1,28 @@
+[project]
+name = "grids-service"
+version = "0.1.0"
+description = "Service to manage grids configuration for clients"
+authors = [
+    {name = "Lukasz Chmielewski", email = "lukchm94@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=22.8.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.25.0",
+    "typing_extensions>=4.9.0"
+]
