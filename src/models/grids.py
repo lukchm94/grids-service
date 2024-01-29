@@ -4,18 +4,12 @@ from typing import Dict, List, Union
 
 from pydantic import BaseModel, Field, model_validator
 
-from __configs import DiscountToConvert, PriceToConvert
+from __app_configs import DiscountToConvert, PriceToConvert
 from __exceptions import HoursError, InvalidDayError, InvalidInputError
 
 
 class Grid(BaseModel):
-    id: int = Field(ge=0, default=0)
-
-    def to_str(self) -> str:
-        return f"The ID of a grid is: {str(self.id)}"
-
-
-class Grid(BaseModel):
+    id: int = Field(gt=0, lt=1000000)
     min_volume_threshold: int = Field(gt=0)
     max_volume_threshold: Union[int, None]
     min_distance_in_unit: float = Field(ge=0)

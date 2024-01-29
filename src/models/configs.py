@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, Field, model_validator
 
-from __configs import (
+from __app_configs import (
     PackageSizes,
     PricingImplementationTypes,
     PricingTypes,

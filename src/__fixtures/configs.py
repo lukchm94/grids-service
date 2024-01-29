@@ -4,15 +4,14 @@ from datetime import datetime
 
 import pytest
 
-from __configs import (
+from __app_configs import (
     PackageSizes,
     PricingImplementationTypes,
     PricingTypes,
     TransportTypes,
 )
-from __fixtures.grids import volume_grid_1, volume_grid_2, volume_grid_3, volume_grid_4
+from __fixtures.grids import discount_grids, peak_grids, vol_grids
 from models.configs import Config
-from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 
 
 # @pytest.fixture
@@ -25,5 +24,41 @@ def config_with_volume_grid() -> Config:
         config_type=PricingImplementationTypes.fee.value,
         package_size_option=PackageSizes.list(),
         transport_option=TransportTypes.list(),
-        grids=[volume_grid_1(), volume_grid_2(), volume_grid_3(), volume_grid_4()],
+        grids=vol_grids(),
     )
+
+
+# @pytest.fixture
+def config_with_peak_grid() -> Config:
+    return Config(
+        client_id=234,
+        valid_from=datetime(2024, 1, 1),
+        valid_to=None,
+        pricing_type=PricingTypes.peak.value,
+        config_type=PricingImplementationTypes.fee.value,
+        package_size_option=PackageSizes.list(),
+        transport_option=TransportTypes.list(),
+        grids=peak_grids(),
+    )
+
+
+# @pytest.fixture
+def config_with_discount_grid() -> Config:
+    return Config(
+        client_id=345,
+        valid_from=datetime(2024, 1, 1),
+        valid_to=None,
+        pricing_type=PricingTypes.volume.value,
+        config_type=PricingImplementationTypes.discount.value,
+        package_size_option=PackageSizes.list(),
+        transport_option=TransportTypes.list(),
+        grids=discount_grids(),
+    )
+
+
+def get_all_configs() -> list[Config]:
+    return [
+        config_with_discount_grid(),
+        config_with_peak_grid(),
+        config_with_volume_grid(),
+    ]

@@ -1,10 +1,25 @@
 from enum import Enum
 
 
+def return_elements(elements: list) -> dict:
+    if len(elements) == 0:
+        return {AppVars.empty.value}
+    return {AppVars.elements.value: len(elements), AppVars.data.value: elements}
+
+
+class AppVars(str, Enum):
+    elements = "elements"
+    data = "data"
+    hello = "Hello from root"
+    empty = "Missing data for your query"
+
+
 class Paths(str, Enum):
     root = "/"
     grids = f"{root}grids"
     configs = f"{root}configs"
+    config_tag = "configs"
+    grids_tag = "grids"
 
 
 class GridsMergeCols(str, Enum):
