@@ -23,6 +23,7 @@ from models.grids import DiscountGrid, Grid, PeakOffPeakGrid, VolumeGrid
 
 
 class Config(BaseModel):
+    id: int = Field(gt=0, lt=1000000)
     client_id: int = Field(gt=0)
     valid_from: datetime = Field(default=datetime.today().date() + timedelta(days=1))
     valid_to: Union[datetime, None] = Field(default=None)

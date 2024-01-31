@@ -5,6 +5,7 @@ from __fixtures.configs import get_all_configs
 from models.configs import Config
 
 router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
+# TODO add DB dependency here to build a DB
 
 
 @router.get(Paths.root.value, status_code=status.HTTP_200_OK)
