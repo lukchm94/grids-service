@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, validator
 
 from __app_configs import (
     PackageSizes,
@@ -22,7 +22,7 @@ from __exceptions import (
 from models.grids import DiscountGrid, Grid, PeakOffPeakGrid, VolumeGrid
 
 
-class Config(BaseModel):
+class BaseConfig(BaseModel):
     id: int = Field(gt=0, lt=1000000)
     client_id: int = Field(gt=0)
     valid_from: datetime = Field(default=datetime.today().date() + timedelta(days=1))
@@ -31,7 +31,34 @@ class Config(BaseModel):
     config_type: str
     package_size_option: list[str] = Field(default=PackageSizes.list())
     transport_option: list[str] = Field(default=TransportTypes.list())
-    grids: list[Grid]
+
+    @model_validator(mode="before")
+    def validate_fee_config(cls, values: dict):
+        pricing_type = values.get("pricing_type")
+        if pricing_type not in [
+            PricingTypes.volume.value,
+            PricingTypes.peak.value,
+        ]:
+            raise UnsupportedFeeTypeError(fee_type=pricing_type)
+
+        valid_from = values.get("valid_from")
+        valid_to = values.get("valid_to")
+
+        if valid_to is not None and valid_to < valid_from:
+            raise DatesError(valid_from=valid_from, valid_to=valid_to)
+
+        package_size_option = values.get("package_size_option")
+        for pkg in package_size_option:
+            if pkg not in PackageSizes.list():
+                raise InvalidInputError(value=package_size_option)
+
+        transport_option = values.get("transport_option")
+        for transport_type in transport_option:
+            if transport_type not in TransportTypes.list():
+                raise InvalidInputError(value=transport_option)
+
+        validates_grids = Config._grids_validator(values=values)
+        return validates_grids
 
     @staticmethod
     def _grids_validator(values: dict) -> dict:
@@ -88,33 +115,19 @@ class Config(BaseModel):
             raise InvalidInputError(value=config_type)
         return values
 
-    @model_validator(mode="before")
-    def validate_fee_config(cls, values: dict):
-        pricing_type = values.get("pricing_type")
-        if pricing_type not in [
-            PricingTypes.volume.value,
-            PricingTypes.peak.value,
-        ]:
-            raise UnsupportedFeeTypeError(fee_type=pricing_type)
+    def is_valid(self, timestamp: Optional[Union[datetime, str]] = None) -> bool:
+        """Checks if config instance is valid at given timestamp (defaults to current date if not specified)."""
+        if not timestamp:
+            timestamp = datetime.now()
+        if isinstance(timestamp, str):
+            timestamp = datetime.strptime(timestamp, "%Y-%m-%d")
+        return self.valid_from <= timestamp and (
+            not self.valid_to or self.valid_to > timestamp
+        )
 
-        valid_from = values.get("valid_from")
-        valid_to = values.get("valid_to")
 
-        if valid_to is not None and valid_to < valid_from:
-            raise DatesError(valid_from=valid_from, valid_to=valid_to)
-
-        package_size_option = values.get("package_size_option")
-        for pkg in package_size_option:
-            if pkg not in PackageSizes.list():
-                raise InvalidInputError(value=package_size_option)
-
-        transport_option = values.get("transport_option")
-        for transport_type in transport_option:
-            if transport_type not in TransportTypes.list():
-                raise InvalidInputError(value=transport_option)
-
-        validates_grids = Config._grids_validator(values=values)
-        return validates_grids
+class Config(BaseConfig):
+    grids: list[Grid]
 
     @staticmethod
     def _create_grid(record: dict) -> Grid:
@@ -162,12 +175,11 @@ class Config(BaseModel):
             grids=Config._create_grid(record=record),
         )
 
-    def is_valid(self, timestamp: Optional[Union[datetime, str]] = None) -> bool:
-        """Checks if config instance is valid at given timestamp (defaults to current date if not specified)."""
-        if not timestamp:
-            timestamp = datetime.now()
-        if isinstance(timestamp, str):
-            timestamp = datetime.strptime(timestamp, "%Y-%m-%d")
-        return self.valid_from <= timestamp and (
-            not self.valid_to or self.valid_to > timestamp
-        )
+
+class ConfigRequest(BaseConfig):
+    grids_id: List[int]
+
+    # TODO add validation to check if the grid_id exists in DB
+    @validator("grids_id")
+    def validate_grids_id(cls, grids_id: List[int]) -> List[int]:
+        return [id for id in grids_id if id(isinstance, int) and 0 < id < 1000000]
