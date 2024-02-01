@@ -1,0 +1,12 @@
+version: '3.3'
+
+services:
+    solution_db:
+        image: mysql:latest
+        platform: linux/x86_64
+        environment:
+            MYSQL_DATABASE: 'app_dev'
+            MYSQL_ROOT_PASSWORD: 'app_dev'
+        ports:
+            - '3306:3306'
+        restart: unless-stopped

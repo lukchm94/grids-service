@@ -1,9 +1,10 @@
+from typing import Annotated
+
+from fastapi import Depends
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-DB_URL = "mysql+mysqlconnector://root:root@127.0.0.1/grids-service"
-
+DB_URL = "mysql+pymysql://root:password@127.0.0.1:3306/GridsServicePython"
 
 engine = create_engine(DB_URL)
 
@@ -19,3 +20,6 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+db_dependency = Annotated[Session, Depends(get_db)]

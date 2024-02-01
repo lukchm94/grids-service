@@ -17,6 +17,7 @@ from models.configs import Config
 # @pytest.fixture
 def config_with_volume_grid() -> Config:
     return Config(
+        id=1,
         client_id=123,
         valid_from=datetime(2024, 1, 1),
         valid_to=None,
@@ -31,6 +32,7 @@ def config_with_volume_grid() -> Config:
 # @pytest.fixture
 def config_with_peak_grid() -> Config:
     return Config(
+        id=2,
         client_id=234,
         valid_from=datetime(2024, 1, 1),
         valid_to=None,
@@ -45,6 +47,7 @@ def config_with_peak_grid() -> Config:
 # @pytest.fixture
 def config_with_discount_grid() -> Config:
     return Config(
+        id=3,
         client_id=345,
         valid_from=datetime(2024, 1, 1),
         valid_to=None,
