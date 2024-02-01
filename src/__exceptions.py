@@ -31,10 +31,9 @@ class InvalidConfigError(Exception):
         self,
         config: Optional[str] = None,
         pricing: Optional[str] = None,
-        grid: Optional[Any] = None,
     ) -> None:
         super().__init__(
-            f"Invalid configuration received. Configuration: {config}, Pricing Type: {pricing}, Grid Type: {grid}"
+            f"Invalid configuration received. Configuration: {config}, Pricing Type: {pricing}."
         )
 
 

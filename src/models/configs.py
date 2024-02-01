@@ -23,7 +23,6 @@ from models.grids import DiscountGrid, Grid, PeakOffPeakGrid, VolumeGrid
 
 
 class BaseConfig(BaseModel):
-    id: int = Field(gt=0, lt=1000000)
     client_id: int = Field(gt=0)
     valid_from: datetime = Field(default=datetime.today().date() + timedelta(days=1))
     valid_to: Union[datetime, None] = Field(default=None)
@@ -77,42 +76,16 @@ class BaseConfig(BaseModel):
         Returns:
             Dict: validated values
         """
-        grids = values.get("grids")
         pricing_type = values.get("pricing_type")
         config_type = values.get("config_type")
 
         # Check if Discounts are mapped with DiscountGrid
-        if config_type == PricingImplementationTypes.discount.value:
-            if not all([isinstance(grid, DiscountGrid) for grid in grids]):
-                raise InvalidConfigError(
-                    config=config_type,
-                    pricing=pricing_type,
-                    grid=[type(grid).__name__ for grid in grids],
-                )
+        if (
+            config_type == PricingImplementationTypes.discount.value
+            and pricing_type == PricingTypes.peak.value
+        ):
+            raise InvalidConfigError(config_type, pricing_type)
 
-        elif config_type == PricingImplementationTypes.fee.value:
-            # Check if Volume Fees are mapped with VolumeGrid
-            if pricing_type == PricingTypes.volume.value and not all(
-                [isinstance(grid, VolumeGrid) for grid in grids]
-            ):
-                raise InvalidConfigError(
-                    config=config_type,
-                    pricing=pricing_type,
-                    grid=[type(grid).__name__ for grid in grids],
-                )
-
-            # Check if PeakOffPeak Fees are mapped with PeakOffPeakGrid
-            elif pricing_type == PricingTypes.peak.value and not all(
-                [isinstance(grid, PeakOffPeakGrid) for grid in grids]
-            ):
-                raise InvalidConfigError(
-                    config=config_type,
-                    pricing=pricing_type,
-                    grid=[type(grid).__name__ for grid in grids],
-                )
-
-        else:
-            raise InvalidInputError(value=config_type)
         return values
 
     def is_valid(self, timestamp: Optional[Union[datetime, str]] = None) -> bool:
@@ -182,4 +155,4 @@ class ConfigRequest(BaseConfig):
     # TODO add validation to check if the grid_id exists in DB
     @validator("grids_id")
     def validate_grids_id(cls, grids_id: List[int]) -> List[int]:
-        return [id for id in grids_id if id(isinstance, int) and 0 < id < 1000000]
+        return [id for id in grids_id if isinstance(id, int) and 0 < id < 1000000]

@@ -97,17 +97,3 @@ class DiscountGrid(Grid):
         return [
             DiscountGrid(**DiscountGrid._convert_to_cents(grid)) for grid in brackets
         ]
-
-
-class GridRequest(Grid):
-    pickup_amount: Union[int, None] = Field(ge=0, default=None)
-    distance_amount_per_unit: Union[int, None] = Field(ge=0, default=None)
-    dropoff_amount: Union[int, None] = Field(ge=0, default=None)
-    weekday_option: Union[list[int], None] = Field(default=None)
-    hour_start: Union[int, None] = Field(ge=0, lt=24, default=None)
-    hour_end: Union[int, None] = Field(gt=0, le=24, default=None)
-    discount_amount: Union[int, None] = Field(lt=0, default=None)
-
-
-class BaseGridRequest(Grid):
-    pass

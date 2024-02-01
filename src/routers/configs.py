@@ -10,7 +10,7 @@ router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
 
 @router.get(Paths.root.value, status_code=status.HTTP_200_OK)
 async def read_all(db: db_dependency) -> None:
-    configs: list[Config] = db.query(Config)
+    configs: list[Config] = db.query(Config).all()
     return return_elements(configs)
 
 
@@ -24,4 +24,6 @@ async def get_config_by_id(db: db_dependency, id: int = Path(gt=0, lt=1000)):
 async def create_config(db: db_dependency, config_req: ConfigRequest):
     config_model = Config(**config_req.model_dump())
     db.add(config_model)
+    print(config_model)
+    # return config_model.valid_from
     db.commit()
