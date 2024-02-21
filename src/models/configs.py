@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field, model_validator, validator
 
 from __app_configs import (
+    BaseConfigFields,
     PackageSizes,
     PricingImplementationTypes,
     PricingTypes,
@@ -33,25 +34,25 @@ class BaseConfig(BaseModel):
 
     @model_validator(mode="before")
     def validate_fee_config(cls, values: dict):
-        pricing_type = values.get("pricing_type")
+        pricing_type = values.get(BaseConfigFields.pricing_type.value)
         if pricing_type not in [
             PricingTypes.volume.value,
             PricingTypes.peak.value,
         ]:
             raise UnsupportedFeeTypeError(fee_type=pricing_type)
 
-        valid_from = values.get("valid_from")
-        valid_to = values.get("valid_to")
+        valid_from = values.get(BaseConfigFields.valid_from.value)
+        valid_to = values.get(BaseConfigFields.valid_to.value)
 
         if valid_to is not None and valid_to < valid_from:
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
-        package_size_option = values.get("package_size_option")
+        package_size_option = values.get(BaseConfigFields.package_size_option.value)
         for pkg in package_size_option:
             if pkg not in PackageSizes.list():
                 raise InvalidInputError(value=package_size_option)
 
-        transport_option = values.get("transport_option")
+        transport_option = values.get(BaseConfigFields.transport_option.value)
         for transport_type in transport_option:
             if transport_type not in TransportTypes.list():
                 raise InvalidInputError(value=transport_option)
@@ -76,8 +77,8 @@ class BaseConfig(BaseModel):
         Returns:
             Dict: validated values
         """
-        pricing_type = values.get("pricing_type")
-        config_type = values.get("config_type")
+        pricing_type = values.get(BaseConfigFields.pricing_type.value)
+        config_type = values.get(BaseConfigFields.config_type.value)
 
         # Check if Discounts are mapped with DiscountGrid
         if (
@@ -114,17 +115,22 @@ class Config(BaseConfig):
         Returns:
             Grid: correct Grid object based on the config_type, and scheme_type
         """
-        if record.get("config_type") == PricingImplementationTypes.discount.value:
+        if (
+            record.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.discount.value
+        ):
             grid = DiscountGrid.from_brackets(brackets=json.loads(record["brackets"]))
 
         elif (
-            record.get("config_type") == PricingImplementationTypes.fee.value
+            record.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.fee.value
             and record.get("scheme_type") == PricingTypes.volume.value
         ):
             grid = VolumeGrid.from_brackets(brackets=json.loads(record["brackets"]))
 
         elif (
-            record.get("config_type") == PricingImplementationTypes.fee.value
+            record.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.fee.value
             and record.get("scheme_type") == PricingTypes.peak.value
         ):
             grid = PeakOffPeakGrid.from_brackets(
@@ -133,26 +139,17 @@ class Config(BaseConfig):
         else:
             raise UnsupportedConfigError(
                 grid_type=record.get("scheme_type"),
-                config_type=record.get("config_type"),
+                config_type=record.get(BaseConfigFields.config_type.value),
             )
         return grid
 
     @classmethod
     def from_dict(cls, record: dict) -> Config:
         return Config(
-            client_id=record["client_id"],
-            valid_from=record["valid_from_date"],
-            valid_to=record["valid_to_date"],
-            pricing_type=record["pricing_type"],
-            config_type=record["config_type"],
+            client_id=record[BaseConfigFields.client_id.value],
+            valid_from=record[BaseConfigFields.valid_from.value],
+            valid_to=record[BaseConfigFields.valid_to.value],
+            pricing_type=record[BaseConfigFields.pricing_type.value],
+            config_type=record[BaseConfigFields.config_type.value],
             grids=Config._create_grid(record=record),
         )
-
-
-class ConfigRequest(BaseConfig):
-    grids_id: List[int]
-
-    # TODO add validation to check if the grid_id exists in DB
-    @validator("grids_id")
-    def validate_grids_id(cls, grids_id: List[int]) -> List[int]:
-        return [id for id in grids_id if isinstance(id, int) and 0 < id < 1000000]

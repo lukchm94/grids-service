@@ -7,6 +7,46 @@ def return_elements(elements: list) -> dict:
     return {AppVars.elements.value: len(elements), AppVars.data.value: elements}
 
 
+class Deliminator(str, Enum):
+    comma = ", "
+    space = " "
+    dash = "-"
+    vertical = "|"
+    forward_slash = "/"
+    none = ""
+    client_ref_field = " \\| "
+
+
+class ValidationEnum(Enum):
+    """ValidationEnum is a custom Parent class used in specific validations / configs inside the package."""
+
+    @classmethod
+    def list(cls) -> list:
+        """Returns exact list of Enum values from the class"""
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def to_list(cls):
+        """Converts the values and always returns a list of a single objects"""
+        elements = []
+        for id in cls:
+            elements.extend(id.value)
+        return elements
+
+    @classmethod
+    def to_string(cls, separator: str = Deliminator.comma.value):
+        """
+        Returns Enum values as a string separated by a separator.
+        Separator defaults to Deliminator.comma.value
+        """
+        return separator.join([str(id) for id in cls.list()])
+
+    @classmethod
+    def to_dict(cls):
+        """Returns Enums as a data dictionary {Enum.element.name: Enum.element.value}"""
+        return {member.name: member.value for member in cls}
+
+
 class AppVars(str, Enum):
     elements = "elements"
     data = "data"
@@ -40,50 +80,66 @@ class MergeTypes(str, Enum):
     left = "left"
 
 
-class PriceToConvert(str, Enum):
+class PriceToConvert(str, ValidationEnum):
     pu = "pickup_amount"
     distance = "distance_amount_per_unit"
     do = "dropoff_amount"
 
-    @classmethod
-    def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
 
-
-class DiscountToConvert(str, Enum):
+class DiscountToConvert(str, ValidationEnum):
     discount_amount = "discount_amount"
 
-    @classmethod
-    def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
 
-
-class PricingImplementationTypes(str, Enum):
+class PricingImplementationTypes(str, ValidationEnum):
     discount = "discount"
     fee = "fee"
 
 
-class PricingTypes(str, Enum):
+class PricingTypes(str, ValidationEnum):
     volume = "volume"
     platform = "platform"
     peak = "peak_off_peak"
 
 
-class PackageSizes(str, Enum):
+class PackageSizes(str, ValidationEnum):
     small = "SMALL"
     med = "MEDIUM"
     large = "LARGE"
 
-    @classmethod
-    def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
 
-
-class TransportTypes(str, Enum):
+class TransportTypes(str, ValidationEnum):
     walk = "WALK"
     bike = "BIKE"
     car = "CAR"
 
-    @classmethod
-    def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
+
+class DbTables(str, ValidationEnum):
+    configs = "configs"
+    peak_grids = "peak_grids"
+    volume_grids = "volume_grids"
+    discount_grids = "discount_grids"
+    config_table = "ConfigTable"
+    discount_table = "DiscountGridTable"
+    volume_table = "VolumeGridTable"
+    peak_table = "PeakGridTable"
+    config_fk = f"{configs}.id"
+
+
+class DbSequences(str, ValidationEnum):
+    config = "configs_id_seq"
+    peak_grid = "peak_grids_id_seq"
+    volume_grid = "volume_grids_id_seq"
+    discount_grid = "discount_grids_id_seq"
+
+
+class BaseConfigFields(str, ValidationEnum):
+    client_id = "client_id"
+    valid_from = "valid_from"
+    valid_to = "valid_to"
+    pricing_type = "pricing_type"
+    config_type = "config_type"
+    package_size_option = "package_size_option"
+    transport_option = "transport_option"
+
+
+# TODO Add the Grids Fields ENUM
