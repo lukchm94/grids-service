@@ -28,6 +28,7 @@ class ConfigReqController:
         )
 
     def check_existing_config(self, db: db_dependency) -> bool:
+        # TODO validate if the configuration for a client_id exists
         pass
 
 

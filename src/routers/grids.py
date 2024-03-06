@@ -73,6 +73,7 @@ async def create_volume_grid(
     db: db_dependency, grid_req: VolumeGrid, id: int = Path(gt=0)
 ) -> None:
     grid_model_req = VolGridReqController(grid_req).to_grid_req_model(id)
+    # TODO validate that the grid_req has a valid configuration and the configuration is of volume / fee type
     grid_model = VolumeGridTable(**grid_model_req.model_dump())
     db.add(grid_model)
     db.commit()
@@ -83,6 +84,7 @@ async def create_peak_grid(
     db: db_dependency, grid_req: PeakOffPeakGrid, id: int = Path(gt=0)
 ) -> None:
     grid_model_req = PeakGridReqController(grid_req).to_grid_req_model(id)
+    # TODO validate that the grid_req has a valid configuration and the configuration is of peak / fee type
     grid_model = PeakGridTable(**grid_model_req.model_dump())
     db.add(grid_model)
     db.commit()
@@ -93,6 +95,7 @@ async def create_discount_grid(
     db: db_dependency, grid_req: DiscountGrid, id: int = Path(gt=0)
 ) -> None:
     grid_model_req = DiscGridReqController(grid_req).to_grid_req_model(id)
+    # TODO validate that the grid_req has a valid configuration and the configuration is of volume / discount type
     grid_model = DiscountGridTable(**grid_model_req.model_dump())
     db.add(grid_model)
     db.commit()
