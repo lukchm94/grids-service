@@ -57,6 +57,10 @@ class VolumeGrid(_FeeGrid):
         return [VolumeGrid(**Grid._convert_to_cents(grid)) for grid in brackets]
 
 
+class VolumeGridRequest(VolumeGrid):
+    config_id: int = Field(gt=0)
+
+
 class PeakOffPeakGrid(_FeeGrid):
     weekday_option: list[int]
     hour_start: int = Field(ge=0, lt=24)
@@ -81,6 +85,10 @@ class PeakOffPeakGrid(_FeeGrid):
         return [PeakOffPeakGrid(**Grid._convert_to_cents(grid)) for grid in brackets]
 
 
+class PeakGridRequest(PeakOffPeakGrid):
+    config_id: int = Field(gt=0)
+
+
 class DiscountGrid(Grid):
     discount_amount: int = Field(lt=0)
 
@@ -97,3 +105,7 @@ class DiscountGrid(Grid):
         return [
             DiscountGrid(**DiscountGrid._convert_to_cents(grid)) for grid in brackets
         ]
+
+
+class DiscountGridRequest(DiscountGrid):
+    config_id: int = Field(gt=0)

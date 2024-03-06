@@ -60,6 +60,13 @@ class Paths(str, Enum):
     configs = f"{root}configs"
     config_tag = "configs"
     grids_tag = "grids"
+    volume = f"{root}volume"
+    peak = f"{root}peak"
+    discount = f"{root}discount"
+    create = "create"
+    create_vol = f"{create}/volume/"
+    create_peak = f"{create}/peak/"
+    create_disc = f"{create}/discount/"
 
 
 class GridsMergeCols(str, Enum):
@@ -140,6 +147,3 @@ class BaseConfigFields(str, ValidationEnum):
     config_type = "config_type"
     package_size_option = "package_size_option"
     transport_option = "transport_option"
-
-
-# TODO Add the Grids Fields ENUM

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
-from typing import List, Optional, Union
+from typing import Optional, Union
 
-from pydantic import BaseModel, Field, model_validator, validator
+from pydantic import BaseModel, Field, model_validator
 
 from __app_configs import (
     BaseConfigFields,
@@ -25,10 +25,10 @@ from models.grids import DiscountGrid, Grid, PeakOffPeakGrid, VolumeGrid
 
 class BaseConfig(BaseModel):
     client_id: int = Field(gt=0)
-    valid_from: datetime = Field(default=datetime.today().date() + timedelta(days=1))
+    valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
     valid_to: Union[datetime, None] = Field(default=None)
-    pricing_type: str
-    config_type: str
+    pricing_type: str = Field(default=PricingTypes.volume.value)
+    config_type: str = Field(default=PricingImplementationTypes.fee.value)
     package_size_option: list[str] = Field(default=PackageSizes.list())
     transport_option: list[str] = Field(default=TransportTypes.list())
 
@@ -153,3 +153,26 @@ class Config(BaseConfig):
             config_type=record[BaseConfigFields.config_type.value],
             grids=Config._create_grid(record=record),
         )
+
+
+class ConfigReq(BaseConfig):
+    package_size_option: str = Field(default=PackageSizes.to_string())
+    transport_option: str = Field(default=TransportTypes.to_string())
+
+    @model_validator(mode="before")
+    def validate_fee_config(cls, values: dict):
+        pricing_type = values.get(BaseConfigFields.pricing_type.value)
+        if pricing_type not in [
+            PricingTypes.volume.value,
+            PricingTypes.peak.value,
+        ]:
+            raise UnsupportedFeeTypeError(fee_type=pricing_type)
+
+        valid_from = values.get(BaseConfigFields.valid_from.value)
+        valid_to = values.get(BaseConfigFields.valid_to.value)
+
+        if valid_to is not None and valid_to < valid_from:
+            raise DatesError(valid_from=valid_from, valid_to=valid_to)
+
+        validates_grids = Config._grids_validator(values=values)
+        return validates_grids

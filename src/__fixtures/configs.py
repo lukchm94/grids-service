@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 from __app_configs import (
     PackageSizes,
     PricingImplementationTypes,
