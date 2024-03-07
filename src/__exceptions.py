@@ -1,5 +1,8 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException
+from typing_extensions import Annotated, Doc
 
 
 class DatesError(Exception):
@@ -52,3 +55,33 @@ class UnsupportedConfigError(Exception):
         super().__init__(
             f"Unsupported grid type: {grid_type} or config type: {config_type}"
         )
+
+
+class ClientIdConfigError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = 422,
+        detail: Any = f"Two Client IDs not identical",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+
+
+class UnsupportedConfigAfterUpdateError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = 422,
+        detail: Any = "Unsupported grid type and config type",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+
+
+class ConfigGridValidationError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = 404,
+        detail: Any = "Invalid pricing type and config type provided",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)

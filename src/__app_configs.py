@@ -52,6 +52,12 @@ class AppVars(str, Enum):
     data = "data"
     hello = "Hello from root"
     empty = "Missing data for your query"
+    client_config_exists = (
+        "Config for Client ID: {client_id} exists. Use UpdateConfig endpoint/"
+    )
+    no_client_config = (
+        "No Config identified for Client ID: {client_id}. Use CreateConfig endpoint/"
+    )
 
 
 class Paths(str, Enum):
@@ -64,9 +70,9 @@ class Paths(str, Enum):
     peak = f"{root}peak"
     discount = f"{root}discount"
     create = "create"
-    create_vol = f"{create}/volume/"
-    create_peak = f"{create}/peak/"
-    create_disc = f"{create}/discount/"
+    create_vol = f"/{create}/volume/"
+    create_peak = f"/{create}/peak/"
+    create_disc = f"/{create}/discount/"
 
 
 class GridsMergeCols(str, Enum):
