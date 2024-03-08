@@ -1,23 +1,28 @@
 from __future__ import annotations
 
+from typing import Union
+
+from __app_configs import Deliminator, PricingImplementationTypes, PricingTypes
+from models.configs import Config
 from models.grids import (
     DiscountGrid,
-    DiscountGridRequest,
-    PeakGridRequest,
+    DiscountGridReq,
+    PeakGridReq,
     PeakOffPeakGrid,
     VolumeGrid,
-    VolumeGridRequest,
+    VolumeGridReq,
 )
 
 
+# TODO organize the the controller better
 class VolGridReqController:
     grid_req: VolumeGrid
 
     def __init__(self, grid_req: VolumeGrid) -> VolGridReqController:
         self.grid_req = grid_req
 
-    def to_grid_req_model(self, config_id: int) -> VolumeGridRequest:
-        return VolumeGridRequest(
+    def to_grid_req_model(self, config_id: int) -> VolumeGridReq:
+        return VolumeGridReq(
             config_id=config_id,
             min_volume_threshold=self.grid_req.min_volume_threshold,
             max_volume_threshold=self.grid_req.max_volume_threshold,
@@ -35,8 +40,8 @@ class PeakGridReqController:
     def __init__(self, grid_req: PeakOffPeakGrid) -> PeakGridReqController:
         self.grid_req = grid_req
 
-    def to_grid_req_model(self, config_id: int) -> PeakGridRequest:
-        return PeakGridRequest(
+    def to_grid_req_model(self, config_id: int) -> PeakGridReq:
+        return PeakGridReq(
             config_id=config_id,
             min_volume_threshold=self.grid_req.min_volume_threshold,
             max_volume_threshold=self.grid_req.max_volume_threshold,
@@ -57,8 +62,8 @@ class DiscGridReqController:
     def __init__(self, grid_req: DiscountGrid) -> DiscGridReqController:
         self.grid_req = grid_req
 
-    def to_grid_req_model(self, config_id: int) -> DiscountGridRequest:
-        return DiscountGridRequest(
+    def to_grid_req_model(self, config_id: int) -> DiscountGridReq:
+        return DiscountGridReq(
             config_id=config_id,
             min_volume_threshold=self.grid_req.min_volume_threshold,
             max_volume_threshold=self.grid_req.max_volume_threshold,
@@ -66,3 +71,47 @@ class DiscGridReqController:
             max_distance_in_unit=self.grid_req.max_distance_in_unit,
             discount_amount=self.grid_req.discount_amount,
         )
+
+
+class ConfigGridReqController:
+    req: Config
+    id: int
+
+    def __init__(self, req: Config, id: int) -> ConfigGridReqController:
+        self.req = req
+        self.id = id
+
+    def _get_grid_req(
+        self, grids: Union[list[VolumeGrid], list[PeakOffPeakGrid], list[DiscountGrid]]
+    ) -> Union[list[VolumeGridReq], list[PeakGridReq], list[DiscountGridReq]]:
+
+        if (
+            self.req.config_type == PricingImplementationTypes.discount.value
+            and self.req.pricing_type == PricingTypes.volume.value
+        ):
+            return [
+                DiscGridReqController(grid).to_grid_req_model(self.id) for grid in grids
+            ]
+
+        elif (
+            self.req.config_type == PricingImplementationTypes.fee.value
+            and self.req.pricing_type == PricingTypes.peak.value
+        ):
+            return [
+                PeakGridReqController(grid).to_grid_req_model(self.id) for grid in grids
+            ]
+
+        elif (
+            self.req.config_type == PricingImplementationTypes.fee.value
+            and self.req.pricing_type == PricingTypes.volume.value
+        ):
+            return [
+                VolGridReqController(grid).to_grid_req_model(self.id) for grid in grids
+            ]
+
+    def format(
+        self,
+    ) -> Union[list[VolumeGridReq], list[PeakGridReq], list[DiscountGridReq]]:
+        # TODO here the logic should validate if each new grid is okay
+        # and if each grid is ordered correctly (grid for vol 1 bucket (distances buckets), etc)
+        return self._get_grid_req(self.req.grids)

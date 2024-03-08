@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
-from typing_extensions import Annotated, Doc
 
 
 class DatesError(Exception):
@@ -45,15 +44,10 @@ class UnsupportedFeeTypeError(Exception):
         super().__init__(f"Received unsupported FeeType: {fee_type}")
 
 
-class UnsupportedPriceTypeError(Exception):
-    def __init__(self, type: str) -> None:
-        super().__init__(f"Received unsupported PriceType: {type}")
-
-
-class UnsupportedConfigError(Exception):
-    def __init__(self, grid_type: str, config_type: str) -> None:
+class GridReqConversionError(ValueError):
+    def __init__(self) -> None:
         super().__init__(
-            f"Unsupported grid type: {grid_type} or config type: {config_type}"
+            "Each item in 'grids' must be an instance of VolumeGrid, PeakOffPeakGrid, or DiscountGrid"
         )
 
 

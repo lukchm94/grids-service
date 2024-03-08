@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta
 from typing import Optional, Union
 
@@ -15,12 +14,19 @@ from __app_configs import (
 )
 from __exceptions import (
     DatesError,
+    GridReqConversionError,
     InvalidConfigError,
     InvalidInputError,
-    UnsupportedConfigError,
     UnsupportedFeeTypeError,
 )
-from models.grids import DiscountGrid, Grid, PeakOffPeakGrid, VolumeGrid
+from models.grids import (
+    DiscountGrid,
+    DiscountGridReq,
+    PeakGridReq,
+    PeakOffPeakGrid,
+    VolumeGrid,
+    VolumeGridReq,
+)
 
 
 class BaseConfig(BaseModel):
@@ -100,61 +106,6 @@ class BaseConfig(BaseModel):
         )
 
 
-class Config(BaseConfig):
-    grids: list[Grid]
-
-    @staticmethod
-    def _create_grid(record: dict) -> Grid:
-        """
-        Args:
-            record (Dict): data dictionary of the configuration elements
-
-        Raises:
-            UnsupportedConfigError: Exception if the unsupported configuration is identified
-
-        Returns:
-            Grid: correct Grid object based on the config_type, and scheme_type
-        """
-        if (
-            record.get(BaseConfigFields.config_type.value)
-            == PricingImplementationTypes.discount.value
-        ):
-            grid = DiscountGrid.from_brackets(brackets=json.loads(record["brackets"]))
-
-        elif (
-            record.get(BaseConfigFields.config_type.value)
-            == PricingImplementationTypes.fee.value
-            and record.get("scheme_type") == PricingTypes.volume.value
-        ):
-            grid = VolumeGrid.from_brackets(brackets=json.loads(record["brackets"]))
-
-        elif (
-            record.get(BaseConfigFields.config_type.value)
-            == PricingImplementationTypes.fee.value
-            and record.get("scheme_type") == PricingTypes.peak.value
-        ):
-            grid = PeakOffPeakGrid.from_brackets(
-                brackets=json.loads(record["brackets"])
-            )
-        else:
-            raise UnsupportedConfigError(
-                grid_type=record.get("scheme_type"),
-                config_type=record.get(BaseConfigFields.config_type.value),
-            )
-        return grid
-
-    @classmethod
-    def from_dict(cls, record: dict) -> Config:
-        return Config(
-            client_id=record[BaseConfigFields.client_id.value],
-            valid_from=record[BaseConfigFields.valid_from.value],
-            valid_to=record[BaseConfigFields.valid_to.value],
-            pricing_type=record[BaseConfigFields.pricing_type.value],
-            config_type=record[BaseConfigFields.config_type.value],
-            grids=Config._create_grid(record=record),
-        )
-
-
 class ConfigReq(BaseConfig):
     package_size_option: str = Field(default=PackageSizes.to_string())
     transport_option: str = Field(default=TransportTypes.to_string())
@@ -174,5 +125,60 @@ class ConfigReq(BaseConfig):
         if valid_to is not None and valid_to < valid_from:
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
-        validates_grids = Config._grids_validator(values=values)
+        validates_grids = BaseConfig._grids_validator(values=values)
+
         return validates_grids
+
+
+class Config(BaseConfig):
+    grids: Union[list[VolumeGrid], list[PeakOffPeakGrid], list[DiscountGrid]]
+
+    @model_validator(mode="before")
+    def validate_grids(cls, values: dict):
+        pricing_type = values.get(BaseConfigFields.pricing_type.value)
+        if pricing_type not in [
+            PricingTypes.volume.value,
+            PricingTypes.peak.value,
+        ]:
+            raise UnsupportedFeeTypeError(fee_type=pricing_type)
+
+        valid_from = values.get(BaseConfigFields.valid_from.value)
+        valid_to = values.get(BaseConfigFields.valid_to.value)
+
+        if valid_to is not None and valid_to < valid_from:
+            raise DatesError(valid_from=valid_from, valid_to=valid_to)
+
+        values["grids"] = Config._convert_grids(values)
+        for grid in values.get("grids"):
+            if not isinstance(grid, (VolumeGrid, PeakOffPeakGrid, DiscountGrid)):
+                raise GridReqConversionError()
+        validates_grids = BaseConfig._grids_validator(values=values)
+        return validates_grids
+
+    @staticmethod
+    def _convert_grids(values: dict) -> Config:
+        if (
+            values.get("config_type") == PricingImplementationTypes.discount.value
+            and values.get("pricing_type") == PricingTypes.volume.value
+        ):
+            return [DiscountGrid(**grid) for grid in values.get("grids")]
+
+        elif (
+            values.get("config_type") == PricingImplementationTypes.fee.value
+            and values.get("pricing_type") == PricingTypes.peak.value
+        ):
+            return [PeakOffPeakGrid(**grid) for grid in values.get("grids")]
+
+        elif (
+            values.get("config_type") == PricingImplementationTypes.fee.value
+            and values.get("pricing_type") == PricingTypes.volume.value
+        ):
+            return [VolumeGrid(**grid) for grid in values.get("grids")]
+
+
+class ConfigResp(BaseConfig):
+    grids: Union[list[VolumeGrid], list[PeakOffPeakGrid], list[DiscountGrid]]
+
+
+class ConfigGridReq(ConfigReq):
+    grids: Union[list[VolumeGridReq], list[PeakGridReq], list[DiscountGridReq]]
