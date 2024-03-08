@@ -50,7 +50,9 @@ class PeakGridReqController:
             pickup_amount=self.grid_req.pickup_amount,
             distance_amount_per_unit=self.grid_req.distance_amount_per_unit,
             dropoff_amount=self.grid_req.dropoff_amount,
-            weekday_option=self.grid_req.weekday_option,
+            weekday_option=Deliminator.comma.value.join(
+                [str(day) for day in self.grid_req.weekday_option]
+            ),
             hour_start=self.grid_req.hour_start,
             hour_end=self.grid_req.hour_end,
         )
