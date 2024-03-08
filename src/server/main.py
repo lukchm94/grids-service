@@ -1,9 +1,5 @@
-import sys
-from pathlib import Path
-
 from fastapi import FastAPI
 
-sys.path.insert(1, str(Path(__file__).parents[1]))
 from database.main import Base, engine
 from routers import configs, grids
 

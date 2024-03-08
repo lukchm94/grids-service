@@ -62,6 +62,8 @@ class AppVars(str, Enum):
 
 class Paths(str, Enum):
     root = "/"
+    all = "all"
+    last = "last"
     grids = f"{root}grids"
     configs = f"{root}configs"
     config_tag = "configs"
@@ -73,6 +75,8 @@ class Paths(str, Enum):
     create_vol = f"/{create}/volume/"
     create_peak = f"/{create}/peak/"
     create_disc = f"/{create}/discount/"
+    get_last_config = f"{configs}{grids}/{all}/"
+    get_all_config = f"{configs}{grids}/{last}/"
 
 
 class GridsMergeCols(str, Enum):

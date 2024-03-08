@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, List, Union
+from typing import Union
 
 from pydantic import BaseModel, Field, model_validator
 
-from __app_configs import DiscountToConvert, PriceToConvert
+from __app_configs import PriceToConvert
 from __exceptions import HoursError, InvalidDayError, InvalidInputError
 
 
@@ -15,7 +15,7 @@ class Grid(BaseModel):
     max_distance_in_unit: Union[float, None]
 
     @model_validator(mode="before")
-    def validate_grid(cls, values: Dict):
+    def validate_grid(cls, values: dict):
         min_volume_threshold = values.get("min_volume_threshold")
         max_volume_threshold = values.get("max_volume_threshold")
 
@@ -45,29 +45,23 @@ class Grid(BaseModel):
         return grid
 
 
-class _FeeGrid(Grid):
+class VolumeGrid(Grid):
     pickup_amount: int = Field(ge=0)
     distance_amount_per_unit: int = Field(ge=0)
     dropoff_amount: int = Field(ge=0)
 
 
-class VolumeGrid(_FeeGrid):
-    @classmethod
-    def from_brackets(cls, brackets: list[dict]) -> VolumeGrid:
-        return [VolumeGrid(**Grid._convert_to_cents(grid)) for grid in brackets]
-
-
-class VolumeGridRequest(VolumeGrid):
+class VolumeGridReq(VolumeGrid):
     config_id: int = Field(gt=0)
 
 
-class PeakOffPeakGrid(_FeeGrid):
+class PeakOffPeakGrid(VolumeGrid):
     weekday_option: list[int]
     hour_start: int = Field(ge=0, lt=24)
     hour_end: int = Field(gt=0, le=24)
 
     @model_validator(mode="before")
-    def validate_peak_grid(cls, values: Dict):
+    def validate_peak_grid(cls, values: dict):
         weekday_option = values.get("weekday_option")
         for day in weekday_option:
             if not 0 <= day < 7:
@@ -80,32 +74,14 @@ class PeakOffPeakGrid(_FeeGrid):
 
         return values
 
-    @classmethod
-    def from_brackets(cls, brackets: List[Dict]) -> PeakOffPeakGrid:
-        return [PeakOffPeakGrid(**Grid._convert_to_cents(grid)) for grid in brackets]
 
-
-class PeakGridRequest(PeakOffPeakGrid):
+class PeakGridReq(PeakOffPeakGrid):
     config_id: int = Field(gt=0)
 
 
 class DiscountGrid(Grid):
     discount_amount: int = Field(lt=0)
 
-    @staticmethod
-    def _convert_to_cents(grid: dict) -> dict:
-        for col in DiscountToConvert.list():
-            if grid.get(col) is None:
-                raise KeyError(f"{col} not found in the grid")
-            grid[col] = grid[col] * 100
-        return grid
 
-    @classmethod
-    def from_brackets(cls, brackets: List[Dict]) -> DiscountGrid:
-        return [
-            DiscountGrid(**DiscountGrid._convert_to_cents(grid)) for grid in brackets
-        ]
-
-
-class DiscountGridRequest(DiscountGrid):
+class DiscountGridReq(DiscountGrid):
     config_id: int = Field(gt=0)

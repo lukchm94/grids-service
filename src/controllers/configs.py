@@ -15,10 +15,11 @@ from database.models import (
     PeakGridTable,
     VolumeGridTable,
 )
-from models.configs import BaseConfig, Config, ConfigReq
+from models.configs import BaseConfig, ConfigReq, ConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 
 
+# TODO organize the the controller better
 class ConfigReqController:
     config_req: BaseConfig
 
@@ -41,12 +42,11 @@ class ConfigReqController:
         )
 
     def check_if_exists(self, db: db_dependency) -> bool:
-        config_to_create: BaseConfig = (
+        config_to_create = (
             db.query(ConfigTable)
             .filter(ConfigTable.client_id == self.config_req.client_id)
             .order_by(ConfigTable.valid_to)
             .first()
-            .to_config()
         )
         return True if config_to_create is not None else False
 
@@ -145,12 +145,12 @@ class ConfigGridController:
         ):
             raise UnsupportedConfigAfterUpdateError()
 
-    def get_config(self, config_model: BaseConfig) -> Config:
+    def get_config(self, config_model: BaseConfig) -> ConfigResp:
         if (
             config_model.config_type == PricingImplementationTypes.discount.value
             and config_model.pricing_type == PricingTypes.volume.value
         ):
-            return Config(
+            return ConfigResp(
                 client_id=config_model.client_id,
                 valid_from=config_model.valid_from,
                 valid_to=config_model.valid_to,
@@ -165,7 +165,7 @@ class ConfigGridController:
             config_model.config_type == PricingImplementationTypes.fee.value
             and config_model.pricing_type == PricingTypes.peak.value
         ):
-            return Config(
+            return ConfigResp(
                 client_id=config_model.client_id,
                 valid_from=config_model.valid_from,
                 valid_to=config_model.valid_to,
@@ -180,7 +180,7 @@ class ConfigGridController:
             config_model.config_type == PricingImplementationTypes.fee.value
             and config_model.pricing_type == PricingTypes.volume.value
         ):
-            return Config(
+            return ConfigResp(
                 client_id=config_model.client_id,
                 valid_from=config_model.valid_from,
                 valid_to=config_model.valid_to,
