@@ -87,32 +87,23 @@ async def update_last_config(
 async def create_config_with_grids(db: db_dependency, config_req: Config):
     # TODO add a middleware function to modify the request to default body to Client ID from Path
     req_controller: ConfigReqController = ConfigReqController(config_req)
-    if not req_controller.check_if_exists(db):
-        return Response(
-            content=AppVars.no_client_config.value.format(
-                client_id=config_req.client_id
-            ),
-            status_code=status.HTTP_200_OK,
-        )
-
     valid_config_req = req_controller.format()
-    model_to_expire = (
-        db.query(ConfigTable)
-        .filter(ConfigTable.client_id == config_req.client_id)
-        .order_by(ConfigTable.valid_to)
-        .first()
-    )
+    if req_controller.check_if_exists(db):
+        model_to_expire = (
+            db.query(ConfigTable)
+            .filter(ConfigTable.client_id == config_req.client_id)
+            .order_by(ConfigTable.valid_to)
+            .first()
+        )
+        expired_model = ConfigModelController(model_to_expire).expire(valid_config_req)
+        db.add(expired_model)
 
-    expired_model = ConfigModelController(model_to_expire).expire(valid_config_req)
-    print(expired_model)
-    db.add(expired_model)
     config_model = ConfigTable(**valid_config_req.model_dump())
-    print(config_model)
     db.add(config_model)
-
+    db.commit()
     last_config = db.query(ConfigTable).order_by(desc(ConfigTable.id)).first()
 
-    grids_req = ConfigGridReqController(req=config_req, id=last_config.id + 1).format()
+    grids_req = ConfigGridReqController(req=config_req, id=last_config.id).format()
     for grid in grids_req:
         if isinstance(grid, VolumeGridReq):
             grid_model = VolumeGridTable(**grid.model_dump())
@@ -122,7 +113,6 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
             grid_model = DiscountGridTable(**grid.model_dump())
 
         if grid_model is not None:
-            print(grid_model)
             db.add(grid_model)
 
     db.commit()

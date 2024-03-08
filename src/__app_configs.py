@@ -52,12 +52,10 @@ class AppVars(str, Enum):
     data = "data"
     hello = "Hello from root"
     empty = "Missing data for your query"
-    client_config_exists = (
-        "Config for Client ID: {client_id} exists. Use UpdateConfig endpoint/"
-    )
     no_client_config = (
         "No Config identified for Client ID: {client_id}. Use CreateConfig endpoint/"
     )
+    weekend_days = "4,5,6"
 
 
 class Paths(str, Enum):

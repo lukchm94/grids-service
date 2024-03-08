@@ -56,12 +56,16 @@ class PeakGridTable(Base):
     dropoff_amount = Column(Integer)
 
     def to_grid(self) -> PeakOffPeakGrid:
+        weekday_option: str = self.weekday_option
+
         return PeakOffPeakGrid(
             min_volume_threshold=self.min_volume_threshold,
             max_volume_threshold=self.max_volume_threshold,
             min_distance_in_unit=self.min_distance_in_unit,
             max_distance_in_unit=self.max_distance_in_unit,
-            weekday_option=self.weekday_option,
+            weekday_option=[
+                int(day) for day in weekday_option.split(Deliminator.comma.value)
+            ],
             hour_start=self.hour_start,
             hour_end=self.hour_end,
             pickup_amount=self.pickup_amount,

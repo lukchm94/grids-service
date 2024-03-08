@@ -156,14 +156,10 @@ class Config(BaseConfig):
         return validates_grids
 
     @staticmethod
-    def _convert_grids(values: dict) -> Config:
+    def _convert_grids(
+        values: dict,
+    ) -> Union[list[DiscountGrid, VolumeGrid, PeakOffPeakGrid]]:
         if (
-            values.get("config_type") == PricingImplementationTypes.discount.value
-            and values.get("pricing_type") == PricingTypes.volume.value
-        ):
-            return [DiscountGrid(**grid) for grid in values.get("grids")]
-
-        elif (
             values.get("config_type") == PricingImplementationTypes.fee.value
             and values.get("pricing_type") == PricingTypes.peak.value
         ):
@@ -174,6 +170,11 @@ class Config(BaseConfig):
             and values.get("pricing_type") == PricingTypes.volume.value
         ):
             return [VolumeGrid(**grid) for grid in values.get("grids")]
+        elif (
+            values.get("config_type") == PricingImplementationTypes.discount.value
+            and values.get("pricing_type") == PricingTypes.volume.value
+        ):
+            return [DiscountGrid(**grid) for grid in values.get("grids")]
 
 
 class ConfigResp(BaseConfig):
