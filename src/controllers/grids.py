@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Union
 
-from __app_configs import Deliminator, PricingImplementationTypes, PricingTypes
+from __app_configs import PricingImplementationTypes, PricingTypes
 from models.configs import Config
 from models.grids import (
     DiscountGrid,
