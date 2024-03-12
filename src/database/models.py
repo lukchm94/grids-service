@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Sequence, String
 
 from __app_configs import DbSequences, DbTables, Deliminator
@@ -15,7 +13,7 @@ class ConfigTable(Base):
         Integer, Sequence(DbSequences.config.value), primary_key=True, index=True
     )
     client_id = Column(Integer)
-    valid_from = Column(DateTime, default=datetime.today() + timedelta(days=1))
+    valid_from = Column(DateTime)
     valid_to = Column(DateTime)
     pricing_type = Column(String(55))
     config_type = Column(String(55))

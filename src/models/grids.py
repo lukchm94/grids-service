@@ -4,15 +4,15 @@ from typing import Union
 
 from pydantic import BaseModel, Field, model_validator
 
-from __app_configs import AppVars
+from __app_configs import Defaults
 from __exceptions import HoursError, InvalidDayError, InvalidInputError
 
 
 class Grid(BaseModel):
-    min_volume_threshold: int = Field(gt=0)
-    max_volume_threshold: Union[int, None]
+    min_volume_threshold: int = Field(gt=0, default=1)
+    max_volume_threshold: Union[int, None] = Field(default=None)
     min_distance_in_unit: float = Field(ge=0)
-    max_distance_in_unit: Union[float, None]
+    max_distance_in_unit: Union[float, None] = Field(default=None)
 
     @model_validator(mode="before")
     def validate_grid(cls, values: dict):
@@ -40,9 +40,9 @@ class Grid(BaseModel):
 
 
 class VolumeGrid(Grid):
-    pickup_amount: int = Field(ge=0)
-    distance_amount_per_unit: int = Field(ge=0)
-    dropoff_amount: int = Field(ge=0)
+    pickup_amount: int = Field(ge=0, default=Defaults.grid_amount.value)
+    distance_amount_per_unit: int = Field(ge=0, default=Defaults.grid_amount.value)
+    dropoff_amount: int = Field(ge=0, default=Defaults.grid_amount.value)
 
 
 class VolumeGridReq(VolumeGrid):
@@ -50,7 +50,7 @@ class VolumeGridReq(VolumeGrid):
 
 
 class DiscountGrid(Grid):
-    discount_amount: int = Field(lt=0)
+    discount_amount: int = Field(lt=0, default=Defaults.discount_amount.value)
 
 
 class DiscountGridReq(DiscountGrid):
@@ -58,9 +58,9 @@ class DiscountGridReq(DiscountGrid):
 
 
 class PeakOffPeakGrid(VolumeGrid):
-    weekday_option: list[int]
-    hour_start: int = Field(ge=0, lt=24)
-    hour_end: int = Field(gt=0, le=24)
+    weekday_option: list[int] = Field(default=Defaults.weekend_days_list.value)
+    hour_start: int = Field(ge=0, lt=24, default=Defaults.hour_start.value)
+    hour_end: int = Field(gt=0, le=24, default=Defaults.hour_end.value)
 
     @model_validator(mode="before")
     def validate_peak_grid(cls, values: dict):
@@ -99,7 +99,7 @@ class PeakOffPeakGrid(VolumeGrid):
 
 class PeakGridReq(PeakOffPeakGrid):
     config_id: int = Field(gt=0)
-    weekday_option: str = Field(default=AppVars.weekend_days.value)
+    weekday_option: str = Field(default=Defaults.weekend_days_str.value)
 
     @model_validator(mode="before")
     def validate_peak_grid(cls, values: dict):

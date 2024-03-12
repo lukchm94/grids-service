@@ -19,7 +19,6 @@ from models.configs import BaseConfig, ConfigReq, ConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 
 
-# TODO organize the the controller better
 class ConfigReqController:
     config_req: BaseConfig
 
@@ -80,11 +79,11 @@ class ConfigModelController:
         return updated_config
 
 
-class ConfigGridController:
+class ConfigRespController:
     config_id: int
     db: db_dependency
 
-    def __init__(self, config_id: int, db: db_dependency) -> ConfigGridController:
+    def __init__(self, config_id: int, db: db_dependency) -> ConfigRespController:
         self.config_id = config_id
         self.db = db
 

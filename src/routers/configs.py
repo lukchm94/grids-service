@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Path, Response, status
 from sqlalchemy import desc
 
-from __app_configs import AppVars, Paths, return_elements
+from __app_configs import (
+    AppVars,
+    Paths,
+    PricingImplementationTypes,
+    PricingTypes,
+    return_elements,
+)
+from __exceptions import ConfigGridValidationError
 from controllers.configs import (
-    ConfigGridController,
     ConfigModelController,
     ConfigReqController,
+    ConfigRespController,
 )
-from controllers.grids import ConfigGridReqController
+from controllers.grids import GridReqController
 from database.main import db_dependency
 from database.models import (
     ConfigTable,
@@ -30,19 +37,19 @@ async def read_all(db: db_dependency) -> None:
     return return_elements(configs)
 
 
-@router.get(Paths.get_all_config.value + "{client_id}", status_code=status.HTTP_200_OK)
+@router.get(Paths.all_config.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_configs_by_client_id(db: db_dependency, client_id: int = Path(gt=0)):
     config_models: list[ConfigTable] = (
         db.query(ConfigTable).filter(ConfigTable.client_id == client_id).all()
     )
     client_configs: list[Config] = [
-        ConfigGridController(model.id, db).get_config(model.to_config())
+        ConfigRespController(model.id, db).get_config(model.to_config())
         for model in config_models
     ]
     return return_elements(client_configs)
 
 
-@router.get(Paths.get_last_config.value + "{client_id}", status_code=status.HTTP_200_OK)
+@router.get(Paths.last_config.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_last_config_with_grids_by_client_id(
     db: db_dependency, client_id: int = Path(gt=0)
 ):
@@ -52,7 +59,7 @@ async def get_last_config_with_grids_by_client_id(
         .order_by(desc(ConfigTable.valid_to))
         .first()
     )
-    config: Config = ConfigGridController(config_model.id, db).get_config(
+    config: Config = ConfigRespController(config_model.id, db).get_config(
         config_model.to_config()
     )
     return config
@@ -63,6 +70,7 @@ async def update_last_config(
     db: db_dependency, config_req: BaseConfig, client_id: int = Path(gt=0)
 ):
     # TODO add a middleware function to modify the request to default body to Client ID from Path
+    config_req.client_id = client_id
     req_controller: ConfigReqController = ConfigReqController(config_req)
     if not req_controller.check_if_exists(db):
         return Response(
@@ -74,11 +82,11 @@ async def update_last_config(
     model_to_update = (
         db.query(ConfigTable)
         .filter(ConfigTable.client_id == config_req.client_id)
-        .order_by(ConfigTable.valid_to)
+        .order_by(desc(ConfigTable.valid_to))
         .first()
     )
     updated_model = ConfigModelController(model_to_update).update(valid_config_req)
-    ConfigGridController(config_id=updated_model.id, db=db).check_grids(updated_model)
+    ConfigRespController(config_id=updated_model.id, db=db).check_grids(updated_model)
     db.add(updated_model)
     db.commit()
 
@@ -103,7 +111,7 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
     db.commit()
     last_config = db.query(ConfigTable).order_by(desc(ConfigTable.id)).first()
 
-    grids_req = ConfigGridReqController(req=config_req, id=last_config.id).format()
+    grids_req = GridReqController(req=config_req, id=last_config.id).format()
     for grid in grids_req:
         if isinstance(grid, VolumeGridReq):
             grid_model = VolumeGridTable(**grid.model_dump())
@@ -115,4 +123,82 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
         if grid_model is not None:
             db.add(grid_model)
 
+    db.commit()
+
+
+@router.delete(Paths.all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
+    model_to_delete = db.query(ConfigTable).filter(ConfigTable.client_id == id).first()
+
+    if model_to_delete is None:
+        return Response(
+            content=AppVars.no_client_config.value.format(client_id=id),
+            status_code=status.HTTP_200_OK,
+        )
+
+    for to_delete in db.query(ConfigTable).filter(ConfigTable.client_id == id).all():
+        # Delete corresponding Grids
+        if (
+            to_delete.config_type == PricingImplementationTypes.discount.value
+            and to_delete.pricing_type == PricingTypes.volume.value
+        ):
+            db.query(DiscountGridTable.config_id == to_delete.id).delete()
+        elif (
+            to_delete.config_type == PricingImplementationTypes.fee.value
+            and to_delete.pricing_type == PricingTypes.volume.value
+        ):
+            db.query(VolumeGridTable.config_id == to_delete.id).delete()
+        elif (
+            to_delete.config_type == PricingImplementationTypes.fee.value
+            and to_delete.pricing_type == PricingTypes.peak.value
+        ):
+            db.query(PeakGridTable.config_id == to_delete.id).delete()
+        else:
+            raise ConfigGridValidationError(
+                pricing=to_delete.pricing_type, config=to_delete.config_type
+            )
+    db.query(ConfigTable).filter(ConfigTable.client_id == id).delete()
+    db.commit()
+
+
+@router.delete(Paths.last_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_last_config(db: db_dependency, id: int = Path(gt=0)):
+    model_to_delete = (
+        db.query(ConfigTable)
+        .filter(ConfigTable.client_id == id)
+        .order_by(desc(ConfigTable.valid_to))
+        .first()
+    )
+
+    if model_to_delete is None:
+        return Response(
+            content=AppVars.no_client_config.value.format(client_id=id),
+            status_code=status.HTTP_200_OK,
+        )
+
+    # Delete corresponding Grids
+    print(model_to_delete.id)
+    if (
+        model_to_delete.config_type == PricingImplementationTypes.discount.value
+        and model_to_delete.pricing_type == PricingTypes.volume.value
+    ):
+        db.query(DiscountGridTable.config_id == model_to_delete.id).delete()
+    elif (
+        model_to_delete.config_type == PricingImplementationTypes.fee.value
+        and model_to_delete.pricing_type == PricingTypes.volume.value
+    ):
+        db.query(VolumeGridTable.config_id == model_to_delete.id).delete()
+    elif (
+        model_to_delete.config_type == PricingImplementationTypes.fee.value
+        and model_to_delete.pricing_type == PricingTypes.peak.value
+    ):
+        db.query(PeakGridTable.config_id == model_to_delete.id).delete()
+    else:
+        raise ConfigGridValidationError(
+            pricing=model_to_delete.pricing_type, config=model_to_delete.config_type
+        )
+
+    db.query(ConfigTable).filter(ConfigTable.client_id == id).filter(
+        ConfigTable.id == model_to_delete.id
+    ).delete()
     db.commit()

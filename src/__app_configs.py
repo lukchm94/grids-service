@@ -52,10 +52,7 @@ class AppVars(str, Enum):
     data = "data"
     hello = "Hello from root"
     empty = "Missing data for your query"
-    no_client_config = (
-        "No Config identified for Client ID: {client_id}. Use CreateConfig endpoint/"
-    )
-    weekend_days = "4,5,6"
+    no_client_config = "No Config identified for Client ID: {client_id}"
 
 
 class Paths(str, Enum):
@@ -73,8 +70,8 @@ class Paths(str, Enum):
     create_vol = f"/{create}/volume/"
     create_peak = f"/{create}/peak/"
     create_disc = f"/{create}/discount/"
-    get_last_config = f"{configs}{grids}/{all}/"
-    get_all_config = f"{configs}{grids}/{last}/"
+    last_config = f"{configs}{grids}/{last}/"
+    all_config = f"{configs}{grids}/{all}/"
 
 
 class GridsMergeCols(str, Enum):
@@ -155,3 +152,21 @@ class BaseConfigFields(str, ValidationEnum):
     config_type = "config_type"
     package_size_option = "package_size_option"
     transport_option = "transport_option"
+
+
+class Defaults(ValidationEnum):
+    """Default expiration for config is 2 years"""
+
+    expiration: int = 366 + 365
+    grid_amount: int = 100
+    discount_amount: int = -50
+    hour_start: int = 16
+    hour_end: int = 23
+    weekend_days_str: str = "4,5,6"
+    weekend_days_list: list[int] = [4, 5, 6]
+
+
+class GridsValidationTypes(str, ValidationEnum):
+    vol = "volume buckets"
+    dist = "distance buckets"
+    totals = "combined grids"
