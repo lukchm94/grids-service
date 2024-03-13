@@ -60,34 +60,3 @@ async def get_discount_grids_by_id(db: db_dependency, id: int = Path(gt=0)) -> N
     )
     grids: list[DiscountGrid] = [grid.to_grid() for grid in grids_models]
     return return_elements(grids)
-
-
-# # Create Grid elements
-# @router.post(Paths.create_vol.value + "{id}", status_code=status.HTTP_201_CREATED)
-# async def create_volume_grid(
-#     db: db_dependency, grid_req: VolumeGrid, id: int = Path(gt=0)
-# ) -> None:
-#     grid_model_req = VolGridReqController(grid_req).to_grid_req_model(id)
-#     grid_model = VolumeGridTable(**grid_model_req.model_dump())
-#     db.add(grid_model)
-#     db.commit()
-
-
-# @router.post(Paths.create_peak.value + "{id}", status_code=status.HTTP_201_CREATED)
-# async def create_peak_grid(
-#     db: db_dependency, grid_req: PeakOffPeakGrid, id: int = Path(gt=0)
-# ) -> None:
-#     grid_model_req = PeakGridReqController(grid_req).to_grid_req_model(id)
-#     grid_model = PeakGridTable(**grid_model_req.model_dump())
-#     db.add(grid_model)
-#     db.commit()
-
-
-# @router.post(Paths.create_disc.value + "{id}", status_code=status.HTTP_201_CREATED)
-# async def create_discount_grid(
-#     db: db_dependency, grid_req: DiscountGrid, id: int = Path(gt=0)
-# ) -> None:
-#     grid_model_req = DiscGridReqController(grid_req).to_grid_req_model(id)
-#     grid_model = DiscountGridTable(**grid_model_req.model_dump())
-#     db.add(grid_model)
-#     db.commit()

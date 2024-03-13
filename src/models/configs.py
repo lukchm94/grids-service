@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Union
 
 from pydantic import BaseModel, Field, model_validator
 
 from __app_configs import (
     BaseConfigFields,
+    Defaults,
     PackageSizes,
     PricingImplementationTypes,
     PricingTypes,
@@ -30,9 +31,11 @@ from models.grids import (
 
 
 class BaseConfig(BaseModel):
-    client_id: int = Field(gt=0)
+    client_id: int = Field(gt=0, default=1)
     valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
-    valid_to: Union[datetime, None] = Field(default=None)
+    valid_to: datetime = Field(
+        default=datetime.today() + timedelta(days=Defaults.expiration.value)
+    )
     pricing_type: str = Field(default=PricingTypes.volume.value)
     config_type: str = Field(default=PricingImplementationTypes.fee.value)
     package_size_option: list[str] = Field(default=PackageSizes.list())
@@ -94,16 +97,6 @@ class BaseConfig(BaseModel):
             raise InvalidConfigError(config_type, pricing_type)
 
         return values
-
-    def is_valid(self, timestamp: Optional[Union[datetime, str]] = None) -> bool:
-        """Checks if config instance is valid at given timestamp (defaults to current date if not specified)."""
-        if not timestamp:
-            timestamp = datetime.now()
-        if isinstance(timestamp, str):
-            timestamp = datetime.strptime(timestamp, "%Y-%m-%d")
-        return self.valid_from <= timestamp and (
-            not self.valid_to or self.valid_to > timestamp
-        )
 
 
 class ConfigReq(BaseConfig):

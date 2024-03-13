@@ -74,8 +74,24 @@ class UnsupportedConfigAfterUpdateError(HTTPException):
 class ConfigGridValidationError(HTTPException):
     def __init__(
         self,
+        pricing: str = None,
+        config: str = None,
         status_code: int = 404,
-        detail: Any = "Invalid pricing type and config type provided",
+        detail: str = "Invalid pricing type: {pricing} and config type: {config} provided",
         headers: Dict[str, str] | None = None,
     ) -> None:
         super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(pricing=pricing, config=config)
+
+
+class GridsValuesError(HTTPException):
+    def __init__(
+        self,
+        client_id: int,
+        type: str,
+        status_code: int = 422,
+        detail: str = "{client_id} - Invalid grids values after ordering. {type} check",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(client_id=client_id, type=type.upper())
