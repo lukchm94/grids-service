@@ -8,7 +8,14 @@ from __app_configs import (
     PricingImplementationTypes,
     PricingTypes,
 )
-from __exceptions import GridsValuesError
+from __exceptions import ConfigGridValidationError, GridsValuesError
+from database.main import db_dependency
+from database.models import (
+    ConfigTable,
+    DiscountGridTable,
+    PeakGridTable,
+    VolumeGridTable,
+)
 from models.configs import Config
 from models.grids import (
     DiscountGrid,
@@ -154,7 +161,7 @@ class GridReqController:
                 VolGridReqController(grid).to_grid_req_model(self.id) for grid in grids
             ]
 
-    def format(
+    def _format(
         self,
     ) -> Union[list[VolumeGridReq], list[PeakGridReq], list[DiscountGridReq]]:
         """
@@ -165,3 +172,69 @@ class GridReqController:
 
         grids = self._get_grid_req(self.req.grids)
         return self._validate_grids(grids)
+
+    def upload(self, db: db_dependency) -> None:
+        """
+        This function uploads different types of grid data to a database based on their respective
+        types.
+
+        :param db: The `db` parameter in the `upload` method is of type `db_dependency`, which is likely
+        a dependency representing a database connection or session that is used to interact with the
+        database. This parameter is used to add instances of different grid models (VolumeGridTable,
+        PeakGridTable, DiscountGrid
+        :type db: db_dependency
+        """
+        grids_req = self._format()
+        for grid in grids_req:
+            if isinstance(grid, VolumeGridReq):
+                grid_model = VolumeGridTable(**grid.model_dump())
+            elif isinstance(grid, PeakGridReq):
+                grid_model = PeakGridTable(**grid.model_dump())
+            elif isinstance(grid, DiscountGridReq):
+                grid_model = DiscountGridTable(**grid.model_dump())
+
+            if grid_model is not None:
+                db.add(grid_model)
+
+
+class GridDeleteController:
+    db: db_dependency
+    config_id: int
+    config_type: str
+    pricing_type: str
+
+    def __init__(
+        self, config_model: ConfigTable, db: db_dependency
+    ) -> GridDeleteController:
+        self.config_id = config_model.id
+        self.config_type = config_model.config_type
+        self.pricing_type = config_model.pricing_type
+        self.db = db
+
+    def delete(self) -> None:
+        if (
+            self.config_type == PricingImplementationTypes.discount.value
+            and self.pricing_type == PricingTypes.volume.value
+        ):
+            self.db.query(DiscountGridTable).filter(
+                DiscountGridTable.config_id == self.config_id
+            ).delete()
+        elif (
+            self.config_type == PricingImplementationTypes.fee.value
+            and self.pricing_type == PricingTypes.volume.value
+        ):
+            self.db.query(VolumeGridTable).filter(
+                VolumeGridTable.config_id == self.config_id
+            ).delete()
+        elif (
+            self.config_type == PricingImplementationTypes.fee.value
+            and self.pricing_type == PricingTypes.peak.value
+        ):
+            self.db.query(PeakGridTable).filter(
+                PeakGridTable.config_id == self.config_id
+            ).delete()
+        else:
+            raise ConfigGridValidationError(
+                pricing=self.pricing_type,
+                config=self.config_type,
+            )
