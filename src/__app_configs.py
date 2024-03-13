@@ -170,3 +170,36 @@ class GridsValidationTypes(str, ValidationEnum):
     vol = "volume buckets"
     dist = "distance buckets"
     totals = "combined grids"
+
+
+class LoggerConfig(str, ValidationEnum):
+    log_name = "GridsService"
+    default_level = "INFO"
+    debug = "DEBUG"
+    region_name = "eu-west-1"
+    aws_group_name = "growth-service"
+    aws_stream_name = "GridsService"
+
+
+class Env(str, ValidationEnum):
+    dev = "dev"
+    prod = "prod"
+
+
+class LogMsg(str, ValidationEnum):
+    config_updated = (
+        "Config: {config_id} for Client ID: {client_id} updated successfully"
+    )
+    config_created = (
+        "Config: {config_id} for Client ID: {client_id} created successfully"
+    )
+    config_deleted = (
+        "Config: {config_id} for Client ID: {client_id} deleted successfully"
+    )
+    config_expired = "Config: {config_id} for Client ID: {client_id} expired successfully. ValidTo date changed to {expire_date}"
+    grids_created = (
+        "Grids for Config: {config_id} for Client ID: {client_id} created successfully"
+    )
+    grids_deleted = (
+        "Grids for Config: {config_id} for Client ID: {client_id} deleted successfully"
+    )
