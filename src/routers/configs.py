@@ -98,22 +98,18 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
     # TODO add a middleware function to modify the request to default body to Client ID from Path
     req_controller: ConfigReqController = ConfigReqController(config_req)
     valid_config_req = req_controller.format()
+
     if req_controller.check_if_exists(db):
-        model_to_expire = (
+        models_to_expire = (
             db.query(ConfigTable)
             .filter(ConfigTable.client_id == config_req.client_id)
             .order_by(ConfigTable.valid_to)
-            .first()
+            .all()
         )
-        expired_model = ConfigModelController(model_to_expire).expire(valid_config_req)
-        db.add(expired_model)
-        logger.info(
-            LogMsg.config_expired.value.format(
-                config_id=expired_model.id,
-                client_id=expired_model.client_id,
-                expire_date=expired_model.valid_to,
-            )
-        )
+        for model in models_to_expire:
+            if model.valid_to <= valid_config_req.valid_from:
+                continue
+            ConfigModelController(model).expire(valid_config_req, db, logger)
 
     config_model = ConfigTable(**valid_config_req.model_dump())
     db.add(config_model)
@@ -125,7 +121,7 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
     )
     last_config = db.query(ConfigTable).order_by(desc(ConfigTable.id)).first()
 
-    GridReqController(req=config_req, id=last_config.id).upload()
+    GridReqController(req=config_req, id=last_config.id).upload(db)
     db.commit()
     logger.info(
         LogMsg.grids_created.value.format(

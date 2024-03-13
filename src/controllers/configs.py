@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from logging import Logger
 from typing import Union
 
-from __app_configs import Deliminator, PricingImplementationTypes, PricingTypes
+from __app_configs import Deliminator, LogMsg, PricingImplementationTypes, PricingTypes
 from __exceptions import (
     ClientIdConfigError,
     ConfigGridValidationError,
@@ -70,13 +71,21 @@ class ConfigModelController:
 
         return updated_config
 
-    def expire(self, config_req: ConfigReq) -> ConfigTable:
-        updated_config: ConfigTable = self.config_model
-        if updated_config.client_id != config_req.client_id:
+    def expire(self, config_req: ConfigReq, db: db_dependency, logger: Logger) -> None:
+        config_to_expire: ConfigTable = self.config_model
+        if config_to_expire.client_id != config_req.client_id:
             raise ClientIdConfigError()
 
-        updated_config.valid_to = config_req.valid_from
-        return updated_config
+        config_to_expire.valid_to = config_req.valid_from
+        db.add(config_to_expire)
+        db.commit()
+        logger.info(
+            LogMsg.config_expired.value.format(
+                config_id=config_to_expire.id,
+                client_id=config_to_expire.client_id,
+                expire_date=config_to_expire.valid_to,
+            )
+        )
 
 
 class ConfigRespController:
