@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from logging import Logger
 from typing import Union
 
 from __app_configs import (
     Deliminator,
     GridsValidationTypes,
+    LogMsg,
     PricingImplementationTypes,
     PricingTypes,
 )
@@ -109,7 +111,7 @@ class GridReqController:
         ordered_grids = self._order_grids(grids)
 
         vol_min: int = len(set([grid.min_volume_threshold for grid in ordered_grids]))
-        vol_max: int = len(set([grid.min_volume_threshold for grid in ordered_grids]))
+        vol_max: int = len(set([grid.max_volume_threshold for grid in ordered_grids]))
 
         if vol_max != vol_min:
             raise GridsValuesError(
@@ -200,16 +202,27 @@ class GridReqController:
 class GridDeleteController:
     db: db_dependency
     config_id: int
+    client_id: int
     config_type: str
     pricing_type: str
+    logger: Logger
 
     def __init__(
-        self, config_model: ConfigTable, db: db_dependency
+        self, config_model: ConfigTable, db: db_dependency, logger: Logger
     ) -> GridDeleteController:
         self.config_id = config_model.id
+        self.client_id = config_model.client_id
         self.config_type = config_model.config_type
         self.pricing_type = config_model.pricing_type
         self.db = db
+        self.logger = logger
+
+    def _log(self) -> None:
+        self.logger.info(
+            LogMsg.grids_deleted.value.format(
+                config_id=self.config_id, client_id=self.client_id
+            )
+        )
 
     def delete(self) -> None:
         if (
@@ -219,6 +232,7 @@ class GridDeleteController:
             self.db.query(DiscountGridTable).filter(
                 DiscountGridTable.config_id == self.config_id
             ).delete()
+            self._log()
         elif (
             self.config_type == PricingImplementationTypes.fee.value
             and self.pricing_type == PricingTypes.volume.value
@@ -226,6 +240,7 @@ class GridDeleteController:
             self.db.query(VolumeGridTable).filter(
                 VolumeGridTable.config_id == self.config_id
             ).delete()
+            self._log()
         elif (
             self.config_type == PricingImplementationTypes.fee.value
             and self.pricing_type == PricingTypes.peak.value
@@ -233,6 +248,7 @@ class GridDeleteController:
             self.db.query(PeakGridTable).filter(
                 PeakGridTable.config_id == self.config_id
             ).delete()
+            self._log()
         else:
             raise ConfigGridValidationError(
                 pricing=self.pricing_type,

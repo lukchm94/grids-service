@@ -66,12 +66,8 @@ class Paths(str, Enum):
     volume = f"{root}volume"
     peak = f"{root}peak"
     discount = f"{root}discount"
-    create = "create"
-    create_vol = f"/{create}/volume/"
-    create_peak = f"/{create}/peak/"
-    create_disc = f"/{create}/discount/"
-    last_config = f"{configs}{grids}/{last}/"
-    all_config = f"{configs}{grids}/{all}/"
+    last_config = f"{grids}/{last}/"
+    all_config = f"{grids}/{all}/"
 
 
 class GridsMergeCols(str, Enum):
@@ -196,10 +192,12 @@ class LogMsg(str, ValidationEnum):
     config_deleted = (
         "Config: {config_id} for Client ID: {client_id} deleted successfully"
     )
-    config_expired = "Config: {config_id} for Client ID: {client_id} expired successfully. ValidTo date changed to {expire_date}"
+    config_expired = "Config: {config_id} for Client ID: {client_id} expired successfully. ValidTo date changed to {expire_date}. ValidFrom data: {expire_from}"
     grids_created = (
         "Grids for Config: {config_id} for Client ID: {client_id} created successfully"
     )
     grids_deleted = (
         "Grids for Config: {config_id} for Client ID: {client_id} deleted successfully"
     )
+    unsupported_config_grid = "Unsupported grid type: {grid} and config type: {config}"
+    missing_grids = "No grids provided in request"

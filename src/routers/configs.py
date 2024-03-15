@@ -32,7 +32,7 @@ async def get_configs_by_client_id(db: db_dependency, client_id: int = Path(gt=0
         )
 
     client_configs: list[Config] = [
-        ConfigRespController(model.id, db).get_config(model.to_config())
+        ConfigRespController(model.id, db, logger).get_config(model.to_config())
         for model in config_models
     ]
     return return_elements(client_configs)
@@ -55,7 +55,7 @@ async def get_last_config_with_grids_by_client_id(
             status_code=status.HTTP_200_OK,
         )
 
-    config: Config = ConfigRespController(config_model.id, db).get_config(
+    config: Config = ConfigRespController(config_model.id, db, logger).get_config(
         config_model.to_config()
     )
     return config
@@ -83,7 +83,7 @@ async def update_last_config(
         .first()
     )
     updated_model = ConfigModelController(model_to_update).update(valid_config_req)
-    ConfigRespController(config_id=updated_model.id, db=db).check_grids(updated_model)
+    ConfigRespController(updated_model.id, db, logger).check_grids(updated_model)
     db.add(updated_model)
     db.commit()
     logger.info(
@@ -93,12 +93,21 @@ async def update_last_config(
     )
 
 
+# TODO add get request by query parameters
+
+
 @router.post(Paths.grids.value, status_code=status.HTTP_201_CREATED)
 async def create_config_with_grids(db: db_dependency, config_req: Config):
     # TODO add a middleware function to modify the request to default body to Client ID from Path
+    if len(config_req.grids) == 0:
+        logger.warn(LogMsg.missing_grids.value)
+        return Response(
+            content=LogMsg.missing_grids.value,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
     req_controller: ConfigReqController = ConfigReqController(config_req)
     valid_config_req = req_controller.format()
-
     if req_controller.check_if_exists(db):
         models_to_expire = (
             db.query(ConfigTable)
@@ -107,7 +116,7 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
             .all()
         )
         for model in models_to_expire:
-            if model.valid_to <= valid_config_req.valid_from:
+            if model.valid_to < valid_config_req.valid_from:
                 continue
             ConfigModelController(model).expire(valid_config_req, db, logger)
 
@@ -141,12 +150,7 @@ async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
         )
 
     for model in models_to_delete:
-        GridDeleteController(model, db).delete()
-        logger.info(
-            LogMsg.grids_deleted.value.format(
-                config_id=model.id, client_id=model.client_id
-            )
-        )
+        GridDeleteController(model, db, logger).delete()
 
     db.query(ConfigTable).filter(ConfigTable.client_id == id).delete()
     db.commit()
@@ -174,12 +178,7 @@ async def delete_last_config(db: db_dependency, id: int = Path(gt=0)):
             status_code=status.HTTP_200_OK,
         )
 
-    GridDeleteController(model_to_delete, db).delete()
-    logger.info(
-        LogMsg.grids_deleted.value.format(
-            config_id=model_to_delete.id, client_id=model_to_delete.client_id
-        )
-    )
+    GridDeleteController(model_to_delete, db, logger).delete()
 
     db.query(ConfigTable).filter(ConfigTable.client_id == id).filter(
         ConfigTable.id == model_to_delete.id

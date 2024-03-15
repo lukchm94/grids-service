@@ -60,7 +60,7 @@ class ConfigModelController:
     def update(self, config_req: ConfigReq) -> ConfigTable:
         updated_config: ConfigTable = self.config_model
         if updated_config.client_id != config_req.client_id:
-            raise ClientIdConfigError()
+            raise ClientIdConfigError(updated_config.client_id, config_req.client_id)
         updated_config.client_id = config_req.client_id
         updated_config.valid_from = config_req.valid_from
         updated_config.valid_to = config_req.valid_to
@@ -74,9 +74,12 @@ class ConfigModelController:
     def expire(self, config_req: ConfigReq, db: db_dependency, logger: Logger) -> None:
         config_to_expire: ConfigTable = self.config_model
         if config_to_expire.client_id != config_req.client_id:
-            raise ClientIdConfigError()
+            raise ClientIdConfigError(config_to_expire.client_id, config_req.client_id)
 
         config_to_expire.valid_to = config_req.valid_from
+        if config_to_expire.valid_from >= config_to_expire.valid_to:
+            config_to_expire.valid_from = config_to_expire.valid_to
+
         db.add(config_to_expire)
         db.commit()
         logger.info(
@@ -84,6 +87,7 @@ class ConfigModelController:
                 config_id=config_to_expire.id,
                 client_id=config_to_expire.client_id,
                 expire_date=config_to_expire.valid_to,
+                expire_from=config_to_expire.valid_from,
             )
         )
 
@@ -91,10 +95,14 @@ class ConfigModelController:
 class ConfigRespController:
     config_id: int
     db: db_dependency
+    logger: Logger
 
-    def __init__(self, config_id: int, db: db_dependency) -> ConfigRespController:
+    def __init__(
+        self, config_id: int, db: db_dependency, logger: Logger
+    ) -> ConfigRespController:
         self.config_id = config_id
         self.db = db
+        self.logger = logger
 
     def _get_volume_grids(self) -> list[VolumeGrid]:
         return [
@@ -132,7 +140,15 @@ class ConfigRespController:
             and config_model.pricing_type == PricingTypes.volume.value
             and (len(self._get_peak_grids()) > 0 or len(self._get_volume_grids()) > 0)
         ):
-            raise UnsupportedConfigAfterUpdateError()
+            self.logger.warn(
+                LogMsg.unsupported_config_grid.format(
+                    grid=config_model.pricing_type.upper(),
+                    config=config_model.config_type.upper(),
+                )
+            )
+            raise UnsupportedConfigAfterUpdateError(
+                config_model.pricing_type, config_model.config_type
+            )
 
         elif (
             config_model.config_type == PricingImplementationTypes.fee.value
@@ -142,7 +158,15 @@ class ConfigRespController:
                 or len(self._get_volume_grids()) > 0
             )
         ):
-            raise UnsupportedConfigAfterUpdateError()
+            self.logger.warn(
+                LogMsg.unsupported_config_grid.format(
+                    grid=config_model.pricing_type.upper(),
+                    config=config_model.config_type.upper(),
+                )
+            )
+            raise UnsupportedConfigAfterUpdateError(
+                config_model.pricing_type, config_model.config_type
+            )
 
         elif (
             config_model.config_type == PricingImplementationTypes.fee.value
@@ -151,7 +175,15 @@ class ConfigRespController:
                 len(self._get_discounts_grids()) > 0 or len(self._get_peak_grids()) > 0
             )
         ):
-            raise UnsupportedConfigAfterUpdateError()
+            self.logger.warn(
+                LogMsg.unsupported_config_grid.format(
+                    grid=config_model.pricing_type.upper(),
+                    config=config_model.config_type.upper(),
+                )
+            )
+            raise UnsupportedConfigAfterUpdateError(
+                config_model.pricing_type, config_model.config_type
+            )
 
     def get_config(self, config_model: BaseConfig) -> ConfigResp:
         if (
@@ -199,4 +231,6 @@ class ConfigRespController:
                 grids=self._get_volume_grids(),
             )
 
-        raise ConfigGridValidationError()
+        raise ConfigGridValidationError(
+            pricing=config_model.pricing_type, config=config_model.config_type
+        )
