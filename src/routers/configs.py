@@ -139,6 +139,7 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
     )
 
 
+# TODO change the delete requests to put request to keep track of the historical configs
 @router.delete(Paths.all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
     models_to_delete = db.query(ConfigTable).filter(ConfigTable.client_id == id).all()

@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field, model_validator
 
 from __app_configs import (
     BaseConfigFields,
+    ConfigField,
     Defaults,
+    Frequency,
+    Groups,
     PackageSizes,
     PricingImplementationTypes,
     PricingTypes,
@@ -31,18 +34,23 @@ from models.grids import (
 
 
 class BaseConfig(BaseModel):
-    client_id: int = Field(gt=0, default=1)
+    client_id: int = Field(
+        gt=0, default=1
+    )  # Client ID for individual grid or Client Group ID for grouped pricing
     valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
     valid_to: datetime = Field(
         default=datetime.today() + timedelta(days=Defaults.expiration.value)
     )
     pricing_type: str = Field(default=PricingTypes.volume.value)
     config_type: str = Field(default=PricingImplementationTypes.fee.value)
+    group: str = Field(default=Groups)
     package_size_option: list[str] = Field(default=PackageSizes.list())
     transport_option: list[str] = Field(default=TransportTypes.list())
+    frequency: str = Field(default=Frequency.week.value)
+    deleted_at: Union[None, datetime] = Field(default=None)
 
     @model_validator(mode="before")
-    def validate_fee_config(cls, values: dict):
+    def validate_config(cls, values: dict):
         pricing_type = values.get(BaseConfigFields.pricing_type.value)
         if pricing_type not in [
             PricingTypes.volume.value,
@@ -56,6 +64,12 @@ class BaseConfig(BaseModel):
         if valid_to is not None and valid_to < valid_from:
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
+        group_option = values.get(BaseConfigFields.group.value)
+        for group_typ in group_option:
+            if group_typ not in Groups.list():
+                raise InvalidInputError(value=group_option)
+        # TODO add validation that the Client Group ID exists in ClientGroup table if grouped config
+
         package_size_option = values.get(BaseConfigFields.package_size_option.value)
         for pkg in package_size_option:
             if pkg not in PackageSizes.list():
@@ -65,6 +79,11 @@ class BaseConfig(BaseModel):
         for transport_type in transport_option:
             if transport_type not in TransportTypes.list():
                 raise InvalidInputError(value=transport_option)
+
+        freq_option = values.get(BaseConfigFields.freq.value)
+        for frequency in freq_option:
+            if frequency not in Frequency.list():
+                raise InvalidInputError(value=freq_option)
 
         validates_grids = Config._grids_validator(values=values)
         return validates_grids
@@ -104,7 +123,7 @@ class ConfigReq(BaseConfig):
     transport_option: str = Field(default=TransportTypes.to_string())
 
     @model_validator(mode="before")
-    def validate_fee_config(cls, values: dict):
+    def validate_config(cls, values: dict):
         pricing_type = values.get(BaseConfigFields.pricing_type.value)
         if pricing_type not in [
             PricingTypes.volume.value,
@@ -117,6 +136,16 @@ class ConfigReq(BaseConfig):
 
         if valid_to is not None and valid_to < valid_from:
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
+
+        group_option = values.get(BaseConfigFields.group.value)
+        for group_typ in group_option:
+            if group_typ not in Groups.list():
+                raise InvalidInputError(value=group_option)
+
+        freq_option = values.get(BaseConfigFields.freq.value)
+        for frequency in freq_option:
+            if frequency not in Frequency.list():
+                raise InvalidInputError(value=freq_option)
 
         validates_grids = BaseConfig._grids_validator(values=values)
 
@@ -141,10 +170,11 @@ class Config(BaseConfig):
         if valid_to is not None and valid_to < valid_from:
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
-        values["grids"] = Config._convert_grids(values)
-        for grid in values.get("grids"):
+        values[ConfigField.grids.value] = Config._convert_grids(values)
+        for grid in values.get(ConfigField.grids.value):
             if not isinstance(grid, (VolumeGrid, PeakOffPeakGrid, DiscountGrid)):
                 raise GridReqConversionError()
+
         validates_grids = BaseConfig._grids_validator(values=values)
         return validates_grids
 
@@ -153,21 +183,31 @@ class Config(BaseConfig):
         values: dict,
     ) -> Union[list[DiscountGrid, VolumeGrid, PeakOffPeakGrid]]:
         if (
-            values.get("config_type") == PricingImplementationTypes.fee.value
-            and values.get("pricing_type") == PricingTypes.peak.value
+            values.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.fee.value
+            and values.get(BaseConfigFields.pricing_type.value)
+            == PricingTypes.peak.value
         ):
-            return [PeakOffPeakGrid(**grid) for grid in values.get("grids")]
+            return [
+                PeakOffPeakGrid(**grid) for grid in values.get(ConfigField.grids.value)
+            ]
 
         elif (
-            values.get("config_type") == PricingImplementationTypes.fee.value
-            and values.get("pricing_type") == PricingTypes.volume.value
+            values.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.fee.value
+            and values.get(BaseConfigFields.pricing_type.value)
+            == PricingTypes.volume.value
         ):
-            return [VolumeGrid(**grid) for grid in values.get("grids")]
+            return [VolumeGrid(**grid) for grid in values.get(ConfigField.grids.value)]
         elif (
-            values.get("config_type") == PricingImplementationTypes.discount.value
-            and values.get("pricing_type") == PricingTypes.volume.value
+            values.get(BaseConfigFields.config_type.value)
+            == PricingImplementationTypes.discount.value
+            and values.get(BaseConfigFields.pricing_type.value)
+            == PricingTypes.volume.value
         ):
-            return [DiscountGrid(**grid) for grid in values.get("grids")]
+            return [
+                DiscountGrid(**grid) for grid in values.get(ConfigField.grids.value)
+            ]
 
 
 class ConfigResp(BaseConfig):

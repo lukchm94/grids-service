@@ -1,9 +1,11 @@
+from click import group
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Sequence, String
 
 from __app_configs import DbSequences, DbTables, Deliminator
 from database.main import Base
 from models.configs import BaseConfig
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
+from models.groups import ClientGroup
 
 
 # TODO add deleted_at to models
@@ -12,14 +14,17 @@ class ConfigTable(Base):
 
     id = Column(
         Integer, Sequence(DbSequences.config.value), primary_key=True, index=True
-    )
+    )  # Client ID for individual grid or Client Group ID for grouped pricing
     client_id = Column(Integer)
     valid_from = Column(DateTime)
     valid_to = Column(DateTime)
     pricing_type = Column(String(55))
     config_type = Column(String(55))
+    group = Column(String(55))
     package_size_option = Column(String(255))
     transport_option = Column(String(255))
+    frequency = Column(String(55))
+    deleted_at = Column(DateTime)
 
     def to_config(self) -> BaseConfig:
         package_size_option: str = self.package_size_option
@@ -120,4 +125,27 @@ class DiscountGridTable(Base):
             min_distance_in_unit=self.min_distance_in_unit,
             max_distance_in_unit=self.max_distance_in_unit,
             discount_amount=self.discount_amount,
+        )
+
+
+class ClientGroupsTable(Base):
+    __tablename__ = DbTables.client_group.value
+
+    id = Column(
+        Integer, Sequence(DbSequences.groups.value), primary_key=True, index=True
+    )
+    client_ids = Column(String(255))
+    client_group_name = Column(String(255))
+    valid_from = Column(DateTime)
+    valid_to = Column(DateTime)
+    deleted_at = Column(DateTime)
+
+    def to_client_group(self) -> ClientGroup:
+        client_ids: str = self.client_ids
+        return ClientGroup(
+            client_ids=client_ids.split(Deliminator.comma.value),
+            client_group_name=self.client_group_name,
+            valid_from=self.valid_from,
+            valid_to=self.valid_to,
+            deleted_at=self.deleted_at,
         )
