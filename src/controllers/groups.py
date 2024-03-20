@@ -31,7 +31,7 @@ class GroupReqController:
             client_group_name=self.client_group_req.client_group_name,
             valid_from=self.client_group_req.valid_from,
             valid_to=self.client_group_req.valid_to,
-            deleted_at=self.client_group_req.deleted_at,
+            deleted_at=None,
         )
 
     def check_if_exists(self, db: db_dependency) -> bool:
@@ -73,7 +73,6 @@ class GroupDeleteController:
         )
 
         for model in client_groups:
-            print(model)
             model.deleted_at = datetime.now()
             self.db.add(model)
 

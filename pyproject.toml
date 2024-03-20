@@ -18,6 +18,11 @@ build-backend = "pdm.backend"
 [tool.pdm]
 distribution = true
 
+[[tool.pdm.source]]
+name = "stuart"
+url = "https://nexus.internal.stuart.com/repository/pypi-group/simple/"
+verify_ssl = true
+
 [tool.pdm.dev-dependencies]
 dev = [
     "black>=22.8.0",

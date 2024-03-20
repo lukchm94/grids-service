@@ -14,7 +14,9 @@ class ConfigTable(Base):
 
     id = Column(
         Integer, Sequence(DbSequences.config.value), primary_key=True, index=True
-    )  # Client ID for individual grid or Client Group ID for grouped pricing
+    )
+    # TODO change this to parent_client_id. The client_parent_id with the single client_ID
+    # will be mapped to the IND pricing and client_parent_id with multiple client_IDs will be group pricing
     client_id = Column(Integer)
     valid_from = Column(DateTime)
     valid_to = Column(DateTime)
@@ -36,8 +38,11 @@ class ConfigTable(Base):
             valid_to=self.valid_to,
             pricing_type=self.pricing_type,
             config_type=self.config_type,
+            group=self.group,
             package_size_option=package_size_option.split(Deliminator.comma.value),
             transport_option=transport_option.split(Deliminator.comma.value),
+            frequency=self.frequency,
+            deleted_at=self.deleted_at,
         )
 
 

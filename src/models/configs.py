@@ -43,7 +43,7 @@ class BaseConfig(BaseModel):
     )
     pricing_type: str = Field(default=PricingTypes.volume.value)
     config_type: str = Field(default=PricingImplementationTypes.fee.value)
-    group: str = Field(default=Groups)
+    group: str = Field(default=Groups.individual.value)
     package_size_option: list[str] = Field(default=PackageSizes.list())
     transport_option: list[str] = Field(default=TransportTypes.list())
     frequency: str = Field(default=Frequency.week.value)
@@ -65,9 +65,9 @@ class BaseConfig(BaseModel):
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
         group_option = values.get(BaseConfigFields.group.value)
-        for group_typ in group_option:
-            if group_typ not in Groups.list():
-                raise InvalidInputError(value=group_option)
+        if group_option not in Groups.list():
+            raise InvalidInputError(value=group_option)
+
         # TODO add validation that the Client Group ID exists in ClientGroup table if grouped config
 
         package_size_option = values.get(BaseConfigFields.package_size_option.value)
@@ -81,9 +81,8 @@ class BaseConfig(BaseModel):
                 raise InvalidInputError(value=transport_option)
 
         freq_option = values.get(BaseConfigFields.freq.value)
-        for frequency in freq_option:
-            if frequency not in Frequency.list():
-                raise InvalidInputError(value=freq_option)
+        if freq_option not in Frequency.list():
+            raise InvalidInputError(value=freq_option)
 
         validates_grids = Config._grids_validator(values=values)
         return validates_grids
@@ -138,14 +137,12 @@ class ConfigReq(BaseConfig):
             raise DatesError(valid_from=valid_from, valid_to=valid_to)
 
         group_option = values.get(BaseConfigFields.group.value)
-        for group_typ in group_option:
-            if group_typ not in Groups.list():
-                raise InvalidInputError(value=group_option)
+        if group_option not in Groups.list():
+            raise InvalidInputError(value=group_option)
 
         freq_option = values.get(BaseConfigFields.freq.value)
-        for frequency in freq_option:
-            if frequency not in Frequency.list():
-                raise InvalidInputError(value=freq_option)
+        if freq_option not in Frequency.list():
+            raise InvalidInputError(value=freq_option)
 
         validates_grids = BaseConfig._grids_validator(values=values)
 

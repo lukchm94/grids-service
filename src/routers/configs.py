@@ -1,22 +1,55 @@
+from datetime import datetime
 from logging import Logger
 
-from fastapi import APIRouter, Path, Response, status
-from sqlalchemy import desc
+from fastapi import APIRouter, Path, Query, Response, status
+from sqlalchemy import desc, or_
 
 from __app_configs import AppVars, LogMsg, Paths, return_elements
 from controllers.configs import (
+    ConfigDeleteController,
     ConfigModelController,
     ConfigReqController,
     ConfigRespController,
 )
-from controllers.grids import GridDeleteController, GridReqController
+from controllers.grids import GridReqController
+from controllers.query_req import DateReqController
 from database.main import db_dependency
 from database.models import ConfigTable
 from models.configs import BaseConfig, Config
+from models.query_req import DatesReq
 from utils.logger import get_cloudwatch_logger
 
 logger: Logger = get_cloudwatch_logger()
 router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
+
+
+@router.get(Paths.config_dates.value + "{client_id}", status_code=status.HTTP_200_OK)
+async def get_config_by_client_date(
+    db: db_dependency,
+    client_id: int = Path(gt=0),
+    start: datetime = Query(None),
+    end: datetime = Query(None),
+):
+    dates_req: DatesReq = DateReqController(start, end).format()
+    config_model: ConfigTable = (
+        db.query(ConfigTable)
+        .filter(ConfigTable.client_id == client_id)
+        .filter(ConfigTable.valid_from <= dates_req.start)
+        .filter(ConfigTable.valid_to > dates_req.end)
+        .filter(ConfigTable.deleted_at.is_(None))
+        .order_by(desc(ConfigTable.valid_to))
+        .first()
+    )
+    if config_model is None:
+        logger.info(AppVars.no_client_config.value.format(client_id=client_id))
+        return Response(
+            content=AppVars.no_client_config.value.format(client_id=client_id),
+            status_code=status.HTTP_200_OK,
+        )
+
+    return ConfigRespController(config_model.id, db, logger).get_config(
+        config_model.to_config()
+    )
 
 
 @router.get(Paths.all_config.value + "{client_id}", status_code=status.HTTP_200_OK)
@@ -45,6 +78,7 @@ async def get_last_config_with_grids_by_client_id(
     config_model: ConfigTable = (
         db.query(ConfigTable)
         .filter(ConfigTable.client_id == client_id)
+        .filter(ConfigTable.deleted_at.is_(None))
         .order_by(desc(ConfigTable.valid_to))
         .first()
     )
@@ -61,41 +95,6 @@ async def get_last_config_with_grids_by_client_id(
     return config
 
 
-@router.put(Paths.root.value + "{client_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_last_config(
-    db: db_dependency, config_req: BaseConfig, client_id: int = Path(gt=0)
-):
-    # TODO add a middleware function to modify the request to default body to Client ID from Path
-    config_req.client_id = client_id
-    req_controller: ConfigReqController = ConfigReqController(config_req)
-    if not req_controller.check_if_exists(db):
-        logger.info(AppVars.no_client_config.value.format(client_id=client_id))
-        return Response(
-            content=AppVars.no_client_config.value.format(client_id=client_id),
-            status_code=status.HTTP_200_OK,
-        )
-
-    valid_config_req = req_controller.format()
-    model_to_update = (
-        db.query(ConfigTable)
-        .filter(ConfigTable.client_id == config_req.client_id)
-        .order_by(desc(ConfigTable.valid_to))
-        .first()
-    )
-    updated_model = ConfigModelController(model_to_update).update(valid_config_req)
-    ConfigRespController(updated_model.id, db, logger).check_grids(updated_model)
-    db.add(updated_model)
-    db.commit()
-    logger.info(
-        LogMsg.config_updated.value.format(
-            config_id=updated_model.id, client_id=updated_model.client_id
-        )
-    )
-
-
-# TODO add get request by query parameters
-
-
 @router.post(Paths.grids.value, status_code=status.HTTP_201_CREATED)
 async def create_config_with_grids(db: db_dependency, config_req: Config):
     # TODO add a middleware function to modify the request to default body to Client ID from Path
@@ -105,7 +104,7 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
             content=LogMsg.missing_grids.value,
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
-
+    # TODO validate if client ID is not mapped to any ClientGroups
     req_controller: ConfigReqController = ConfigReqController(config_req)
     valid_config_req = req_controller.format()
     if req_controller.check_if_exists(db):
@@ -139,54 +138,55 @@ async def create_config_with_grids(db: db_dependency, config_req: Config):
     )
 
 
-# TODO change the delete requests to put request to keep track of the historical configs
-@router.delete(Paths.all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
-    models_to_delete = db.query(ConfigTable).filter(ConfigTable.client_id == id).all()
-    if len(models_to_delete) == 0:
-        logger.info(AppVars.no_client_config.value.format(client_id=id))
+@router.put(Paths.root.value + "{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_last_config(
+    db: db_dependency, config_req: BaseConfig, client_id: int = Path(gt=0)
+):
+    # TODO add a middleware function to modify the request to default body to Client ID from Path
+    config_req.client_id = client_id
+    req_controller: ConfigReqController = ConfigReqController(config_req)
+    if not req_controller.check_if_exists(db):
+        logger.info(AppVars.no_client_config.value.format(client_id=client_id))
         return Response(
-            content=AppVars.no_client_config.value.format(client_id=id),
+            content=AppVars.no_client_config.value.format(client_id=client_id),
             status_code=status.HTTP_200_OK,
         )
 
-    for model in models_to_delete:
-        GridDeleteController(model, db, logger).delete()
-
-    db.query(ConfigTable).filter(ConfigTable.client_id == id).delete()
-    db.commit()
-    logger.info(
-        LogMsg.config_deleted.value.format(
-            config_id=[config.id for config in models_to_delete],
-            client_id=[config.client_id for config in models_to_delete],
-        )
-    )
-
-
-@router.delete(Paths.last_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_last_config(db: db_dependency, id: int = Path(gt=0)):
-    model_to_delete = (
+    valid_config_req = req_controller.format()
+    model_to_update = (
         db.query(ConfigTable)
-        .filter(ConfigTable.client_id == id)
+        .filter(ConfigTable.client_id == config_req.client_id)
+        .filter(ConfigTable.deleted_at.is_(None))
         .order_by(desc(ConfigTable.valid_to))
         .first()
     )
-
-    if model_to_delete is None:
-        logger.info(AppVars.no_client_config.value.format(client_id=id))
-        return Response(
-            content=AppVars.no_client_config.value.format(client_id=id),
-            status_code=status.HTTP_200_OK,
-        )
-
-    GridDeleteController(model_to_delete, db, logger).delete()
-
-    db.query(ConfigTable).filter(ConfigTable.client_id == id).filter(
-        ConfigTable.id == model_to_delete.id
-    ).delete()
+    updated_model = ConfigModelController(model_to_update).update(valid_config_req)
+    # TODO validate that after update the ind configuration is mapped to IND group
+    ConfigRespController(updated_model.id, db, logger).check_grids(updated_model)
+    db.add(updated_model)
     db.commit()
     logger.info(
-        LogMsg.config_deleted.value.format(
-            config_id=model_to_delete.id, client_id=model_to_delete.client_id
+        LogMsg.config_updated.value.format(
+            config_id=updated_model.id, client_id=updated_model.client_id
         )
     )
+
+
+@router.put(Paths.del_all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
+    try:
+        delete_controller = ConfigDeleteController(id, db, logger)
+        delete_controller.delete_all()
+    except Exception as err:
+        logger.error(err)
+
+
+@router.put(
+    Paths.del_last_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_last_config(db: db_dependency, id: int = Path(gt=0)):
+    try:
+        delete_controller = ConfigDeleteController(id, db, logger)
+        delete_controller.delete_last()
+    except Exception as err:
+        logger.error(err)

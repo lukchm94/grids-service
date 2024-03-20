@@ -1,14 +1,18 @@
-from __future__ import annotations
-
+from datetime import datetime
 from logging import Logger
 from typing import Union
 
-from __app_configs import Deliminator, LogMsg, PricingImplementationTypes, PricingTypes
-from __exceptions import (
-    ClientIdConfigError,
-    ConfigGridValidationError,
-    UnsupportedConfigAfterUpdateError,
+from fastapi import Response, status
+from sqlalchemy import desc
+
+from __app_configs import (
+    AppVars,
+    Deliminator,
+    LogMsg,
+    PricingImplementationTypes,
+    PricingTypes,
 )
+from __exceptions import ClientIdConfigError, UnsupportedConfigAfterUpdateError
 from database.main import db_dependency
 from database.models import (
     ConfigTable,
@@ -23,7 +27,7 @@ from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 class ConfigReqController:
     config_req: BaseConfig
 
-    def __init__(self, config_req: BaseConfig) -> ConfigReqController:
+    def __init__(self, config_req: BaseConfig) -> None:
         self.config_req = config_req
 
     def format(self) -> ConfigReq:
@@ -33,12 +37,15 @@ class ConfigReqController:
             valid_to=self.config_req.valid_to,
             pricing_type=self.config_req.pricing_type,
             config_type=self.config_req.config_type,
+            group=self.config_req.group,
             package_size_option=Deliminator.comma.value.join(
                 [package for package in self.config_req.package_size_option]
             ),
             transport_option=Deliminator.comma.value.join(
                 [transport for transport in self.config_req.transport_option]
             ),
+            frequency=self.config_req.frequency,
+            deleted_at=None,
         )
 
     def check_if_exists(self, db: db_dependency) -> bool:
@@ -54,7 +61,7 @@ class ConfigReqController:
 class ConfigModelController:
     config_model: ConfigTable
 
-    def __init__(self, config_model: ConfigTable) -> ConfigModelController:
+    def __init__(self, config_model: ConfigTable) -> None:
         self.config_model: ConfigTable = config_model
 
     def update(self, config_req: ConfigReq) -> ConfigTable:
@@ -97,9 +104,7 @@ class ConfigRespController:
     db: db_dependency
     logger: Logger
 
-    def __init__(
-        self, config_id: int, db: db_dependency, logger: Logger
-    ) -> ConfigRespController:
+    def __init__(self, config_id: int, db: db_dependency, logger: Logger) -> None:
         self.config_id = config_id
         self.db = db
         self.logger = logger
@@ -190,47 +195,107 @@ class ConfigRespController:
             config_model.config_type == PricingImplementationTypes.discount.value
             and config_model.pricing_type == PricingTypes.volume.value
         ):
-            return ConfigResp(
-                client_id=config_model.client_id,
-                valid_from=config_model.valid_from,
-                valid_to=config_model.valid_to,
-                pricing_type=config_model.pricing_type,
-                config_type=config_model.config_type,
-                package_size_option=config_model.package_size_option,
-                transport_option=config_model.transport_option,
-                grids=self._get_discounts_grids(),
-            )
+            grids = self._get_discounts_grids()
 
         elif (
             config_model.config_type == PricingImplementationTypes.fee.value
             and config_model.pricing_type == PricingTypes.peak.value
         ):
-            return ConfigResp(
-                client_id=config_model.client_id,
-                valid_from=config_model.valid_from,
-                valid_to=config_model.valid_to,
-                pricing_type=config_model.pricing_type,
-                config_type=config_model.config_type,
-                package_size_option=config_model.package_size_option,
-                transport_option=config_model.transport_option,
-                grids=self._get_peak_grids(),
-            )
+            grids = self._get_peak_grids()
 
         elif (
             config_model.config_type == PricingImplementationTypes.fee.value
             and config_model.pricing_type == PricingTypes.volume.value
         ):
-            return ConfigResp(
-                client_id=config_model.client_id,
-                valid_from=config_model.valid_from,
-                valid_to=config_model.valid_to,
-                pricing_type=config_model.pricing_type,
-                config_type=config_model.config_type,
-                package_size_option=config_model.package_size_option,
-                transport_option=config_model.transport_option,
-                grids=self._get_volume_grids(),
+            grids = self._get_volume_grids()
+
+        return ConfigResp(
+            client_id=config_model.client_id,
+            valid_from=config_model.valid_from,
+            valid_to=config_model.valid_to,
+            pricing_type=config_model.pricing_type,
+            config_type=config_model.config_type,
+            group=config_model.group,
+            package_size_option=config_model.package_size_option,
+            transport_option=config_model.transport_option,
+            frequency=config_model.frequency,
+            deleted_at=config_model.deleted_at,
+            grids=grids,
+        )
+
+
+class ConfigDeleteController:
+    client_id: int
+    db: db_dependency
+    logger: Logger
+
+    def __init__(self, client_id: int, db: db_dependency, logger: Logger) -> None:
+        self.client_id: int = client_id
+        self.db: db_dependency = db
+        self.logger: Logger = logger
+
+    def _get_all_configs(self) -> list[ConfigTable]:
+        return (
+            self.db.query(ConfigTable)
+            .filter(ConfigTable.client_id == self.client_id)
+            .all()
+        )
+
+    def _get_last_config(self) -> ConfigTable:
+        return (
+            self.db.query(ConfigTable)
+            .filter(ConfigTable.client_id == self.client_id)
+            .filter(ConfigTable.deleted_at.is_(None))
+            .order_by(desc(ConfigTable.valid_to))
+            .first()
+        )
+
+    def _get_config_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
+        return [model.id for model in models_to_delete]
+
+    def _get_client_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
+        return [model.client_id for model in models_to_delete]
+
+    def delete_all(self) -> None:
+        models_to_delete = self._get_all_configs()
+        if len(models_to_delete) == 0:
+            self.logger.info(
+                AppVars.no_client_config.value.format(client_id=self.client_id)
+            )
+            return Response(
+                content=AppVars.no_client_config.value.format(client_id=self.client_id),
+                status_code=status.HTTP_200_OK,
             )
 
-        raise ConfigGridValidationError(
-            pricing=config_model.pricing_type, config=config_model.config_type
+        for model in models_to_delete:
+            model.deleted_at = datetime.now()
+            self.db.add(model)
+
+        self.db.commit()
+        self.logger.info(
+            LogMsg.config_deleted.value.format(
+                config_id=self._get_config_ids(),
+                client_id=self._get_client_ids(),
+            )
+        )
+
+    def delete_last(self) -> None:
+        model_to_delete = self._get_last_config()
+
+        if model_to_delete is None:
+            self.logger.info(
+                AppVars.no_client_config.value.format(client_id=self.client_id)
+            )
+            return Response(
+                content=AppVars.no_client_config.value.format(client_id=self.client_id),
+                status_code=status.HTTP_200_OK,
+            )
+
+        model_to_delete.deleted_at = datetime.now()
+        self.db.add(model_to_delete)
+        self.db.commit()
+        self.logger.info(
+            LogMsg.config_deleted.value.format(
+                config_id=model_to_delete.id, client_id=model_to_delete.client_id
+            )
         )

@@ -8,32 +8,6 @@ from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 router = APIRouter(prefix=Paths.grids.value, tags=[Paths.grids_tag.value])
 
 
-@router.get(Paths.root.value, status_code=status.HTTP_200_OK)
-async def get_all_grids(db: db_dependency):
-    vol_grids: list[VolumeGridTable] = db.query(VolumeGridTable).all()
-    peak_grids: list[PeakGridTable] = db.query(PeakGridTable).all()
-    discount_grids: list[DiscountGridTable] = db.query(DiscountGridTable).all()
-    return return_elements(vol_grids + peak_grids + discount_grids)
-
-
-@router.get(Paths.volume.value, status_code=status.HTTP_200_OK)
-async def get_all_volume_grids(db: db_dependency) -> None:
-    grids: list[VolumeGridTable] = db.query(VolumeGridTable).all()
-    return return_elements(grids)
-
-
-@router.get(Paths.peak.value, status_code=status.HTTP_200_OK)
-async def get_all_peak_grids(db: db_dependency) -> None:
-    grids: list[PeakGridTable] = db.query(PeakGridTable).all()
-    return return_elements(grids)
-
-
-@router.get(Paths.discount.value, status_code=status.HTTP_200_OK)
-async def get_all_discount_grids(db: db_dependency) -> None:
-    grids: list[DiscountGridTable] = db.query(DiscountGridTable).all()
-    return return_elements(grids)
-
-
 # Getting grids by grid_id
 @router.get(Paths.volume.value + "/{id}", status_code=status.HTTP_200_OK)
 async def get_volume_grid_by_id(db: db_dependency, id: int = Path(gt=0)) -> None:

@@ -74,6 +74,9 @@ class Paths(str, Enum):
     discount = f"{root}discount"
     last_config = f"{grids}/{last}"
     all_config = f"{grids}/{all}"
+    config_dates = f"{grids}/dates/"
+    del_last_config = f"{grids}/{delete}/{last}"
+    del_all_config = f"{grids}/{delete}/{all}"
     group_tag = "client_groups"
     client_id = f"{root}client_id{root}"
     groups = f"{root}{group_tag}"
@@ -153,6 +156,11 @@ class BaseConfigFields(str, ValidationEnum):
 
 class ConfigField(str, ValidationEnum):
     grids = "grids"
+
+
+class QueryFields(str, ValidationEnum):
+    start = "start"
+    end = "end"
 
 
 class ClientGroupFields(str, ValidationEnum):

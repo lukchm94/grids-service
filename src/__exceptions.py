@@ -4,13 +4,7 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException
 
 
-class DatesError(Exception):
-    def __init__(self, valid_from: datetime, valid_to: datetime) -> None:
-        super().__init__(
-            f"Invalid configs: {str(valid_from)} smaller than {str(valid_to)}"
-        )
-
-
+# TODO add the HTTPExceptions to the regular Exceptions
 class InvalidDayError(Exception):
     def __init__(self, day: int) -> None:
         super().__init__(f"Invalid day: {day}. Day must be between 0 and 6")
@@ -26,6 +20,19 @@ class InvalidInputError(Exception):
         super().__init__(
             f"Received {value} of type: {type(value)} not allowed for the field"
         )
+
+
+class DatesError(HTTPException):
+    def __init__(
+        self,
+        valid_from: datetime,
+        valid_to: datetime,
+        status_code: int = 422,
+        detail: str = "Invalid dates; DateStart: {valid_from} smaller than DateEnd: {valid_to}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(valid_to=valid_to, valid_from=valid_from)
 
 
 class InvalidConfigError(Exception):
