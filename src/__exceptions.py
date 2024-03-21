@@ -46,6 +46,18 @@ class InvalidConfigError(Exception):
         )
 
 
+class InvalidGroupError(HTTPException):
+    def __init__(
+        self,
+        group: Optional[str] = None,
+        status_code: int = 422,
+        detail: str = "Received unsupported FeeType: {group}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(group=group)
+
+
 class UnsupportedFeeTypeError(Exception):
     def __init__(self, fee_type: str) -> None:
         super().__init__(f"Received unsupported FeeType: {fee_type}")

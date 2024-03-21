@@ -51,7 +51,6 @@ class AppVars(str, Enum):
     elements = "elements"
     data = "data"
     empty = "Missing data for your query"
-    no_client_config = "No Config identified for Client ID: {client_id}"
     group_ids = "group_ids"
 
 
@@ -64,6 +63,8 @@ class Paths(str, Enum):
     root = "/"
     all = f"all{root}"
     last = f"last{root}"
+    ind = f"{root}individual{root}"
+    group = f"{root}group{root}"
     delete = "delete"
     config_tag = "configs"
     grids_tag = "grids"
@@ -72,18 +73,18 @@ class Paths(str, Enum):
     volume = f"{root}volume"
     peak = f"{root}peak"
     discount = f"{root}discount"
-    last_config = f"{grids}/{last}"
-    all_config = f"{grids}/{all}"
-    config_dates = f"{grids}/dates/"
-    del_last_config = f"{grids}/{delete}/{last}"
-    del_all_config = f"{grids}/{delete}/{all}"
-    group_tag = "client_groups"
+    last_config = f"/{last}"
+    all_config = f"/{all}"
+    config_dates = f"/dates/"
+    del_last_config = f"/{delete}/{last}"
+    del_all_config = f"/{delete}/{all}"
+    account_tag = "accounts"
     client_id = f"{root}client_id{root}"
-    groups = f"{root}{group_tag}"
-    all_groups = f"{root}{all}"
-    all_groups_by_client = f"{client_id}{all}"
-    last_group = f"{root}{last}"
-    delete_group = f"{root}{delete}"
+    accounts = f"{root}{account_tag}"
+    all_accounts = f"{root}{all}"
+    all_acct_by_client = f"{client_id}{all}"
+    last_account = f"{root}{last}"
+    delete_account = f"{root}{delete}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -124,13 +125,14 @@ class DbTables(str, ValidationEnum):
     peak_grids = "peak_grids"
     volume_grids = "volume_grids"
     discount_grids = "discount_grids"
-    client_group = "client_group"
+    accounts = "accounts"
     config_table = "ConfigTable"
     discount_table = "DiscountGridTable"
     volume_table = "VolumeGridTable"
-    client_group_table = "ClientGroupTable"
+    account_table = "AccountTable"
     peak_table = "PeakGridTable"
     config_fk = f"{configs}.id"
+    account_fk = f"{accounts}.id"
 
 
 class DbSequences(str, ValidationEnum):
@@ -138,7 +140,7 @@ class DbSequences(str, ValidationEnum):
     peak_grid = "peak_grids_id_seq"
     volume_grid = "volume_grids_id_seq"
     discount_grid = "discount_grids_id_seq"
-    groups = "client_groups_id_seq"
+    account = "account_id_seq"
 
 
 class BaseConfigFields(str, ValidationEnum):
@@ -163,7 +165,7 @@ class QueryFields(str, ValidationEnum):
     end = "end"
 
 
-class ClientGroupFields(str, ValidationEnum):
+class AccountFields(str, ValidationEnum):
     client_ids = "client_ids"
     valid_from = "valid_from"
     valid_to = "valid_to"
@@ -182,6 +184,7 @@ class Defaults(ValidationEnum):
     weekend_days_list: list[int] = [4, 5, 6]
     client_ids_example: list[int] = [1001, 1002, 1003]
     group_name_example: str = "Test Client Group"
+    ind_account_name: str = "Individual Account Client ID: {client_id}"
 
 
 class GridsValidationTypes(str, ValidationEnum):
@@ -200,26 +203,21 @@ class LoggerConfig(str, ValidationEnum):
 
 
 class LogMsg(str, ValidationEnum):
-    config_updated = (
-        "Config: {config_id} for Client ID: {client_id} updated successfully"
-    )
-    config_created = (
-        "Config: {config_id} for Client ID: {client_id} created successfully"
-    )
-    config_deleted = (
-        "Config: {config_id} for Client ID: {client_id} deleted successfully"
-    )
-    config_expired = "Config: {config_id} for Client ID: {client_id} expired successfully. ValidTo date changed to {expire_date}. ValidFrom data: {expire_from}"
+    config_updated = "Config: {config_id} for Account ID: {account_id} updated."
+    config_created = "Config: {config_id} for Account ID: {account_id} created"
+    config_deleted = "Config: {config_id} for Account ID: {account_id} deleted"
+    config_expired = "Config: {config_id} for Account ID: {account_id} expired. ValidTo date changed to {expire_date}. ValidFrom data: {expire_from}"
     grids_created = (
-        "Grids for Config: {config_id} for Client ID: {client_id} created successfully."
+        "Grids for Config: {config_id} for Account ID: {account_id} created."
     )
     grids_deleted = (
-        "Grids for Config: {config_id} for Client ID: {client_id} deleted successfully."
+        "Grids for Config: {config_id} for Account ID: {account_id} deleted."
     )
     unsupported_config_grid = "Unsupported grid type: {grid} and config type: {config}"
     missing_grids = "No grids provided in request"
-    missing_group = "No Client Groups identified for the request"
-    client_group_created = "Client Group: {client_group_id} for Client IDs: {client_ids} created successfully."
-    client_id_exists_in_group = "Client ID: {client_id} already mapped to the groups: {group_ids}. Remove the client ID from the affected groups first."
-    client_id_in_group = "One of client IDs mapped to different group"
-    client_group_deleted = "Client Group: {client_group_id} for Client IDs: {client_ids} created successfully."
+    missing_group = "No account Groups identified for the request"
+    account_created = "Account ID: {account_id} for Client IDs: {client_ids} created."
+    client_id_exists_in_account = "Client ID: {client_id} already mapped to the accounts: {account_ids}. Remove the client ID from the affected accounts first."
+    client_id_in_account = "One of client IDs mapped to different account"
+    account_deleted = "Account ID: {account_id} for Client IDs: {client_ids} created."
+    account_not_found = "Account ID: {account_id} not found."

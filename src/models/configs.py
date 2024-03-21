@@ -34,9 +34,6 @@ from models.grids import (
 
 
 class BaseConfig(BaseModel):
-    client_id: int = Field(
-        gt=0, default=1
-    )  # Client ID for individual grid or Client Group ID for grouped pricing
     valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
     valid_to: datetime = Field(
         default=datetime.today() + timedelta(days=Defaults.expiration.value)
@@ -117,7 +114,12 @@ class BaseConfig(BaseModel):
         return values
 
 
+class BaseConfigResp(BaseConfig):
+    account_id: int = Field(gt=0, default=1)
+
+
 class ConfigReq(BaseConfig):
+    account_id: int = Field(gt=0, default=1)
     package_size_option: str = Field(default=PackageSizes.to_string())
     transport_option: str = Field(default=TransportTypes.to_string())
 
@@ -207,7 +209,7 @@ class Config(BaseConfig):
             ]
 
 
-class ConfigResp(BaseConfig):
+class ConfigResp(BaseConfigResp):
     grids: Union[list[VolumeGrid], list[PeakOffPeakGrid], list[DiscountGrid]]
 
 

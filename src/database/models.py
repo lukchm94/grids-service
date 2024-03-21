@@ -3,9 +3,9 @@ from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Sequence, S
 
 from __app_configs import DbSequences, DbTables, Deliminator
 from database.main import Base
-from models.configs import BaseConfig
+from models.account import Account
+from models.configs import BaseConfig, BaseConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
-from models.groups import ClientGroup
 
 
 # TODO add deleted_at to models
@@ -15,9 +15,7 @@ class ConfigTable(Base):
     id = Column(
         Integer, Sequence(DbSequences.config.value), primary_key=True, index=True
     )
-    # TODO change this to parent_client_id. The client_parent_id with the single client_ID
-    # will be mapped to the IND pricing and client_parent_id with multiple client_IDs will be group pricing
-    client_id = Column(Integer)
+    account_id = Column(Integer, ForeignKey(DbTables.account_fk.value))
     valid_from = Column(DateTime)
     valid_to = Column(DateTime)
     pricing_type = Column(String(55))
@@ -28,12 +26,12 @@ class ConfigTable(Base):
     frequency = Column(String(55))
     deleted_at = Column(DateTime)
 
-    def to_config(self) -> BaseConfig:
+    def to_config(self) -> BaseConfigResp:
         package_size_option: str = self.package_size_option
         transport_option: str = self.transport_option
 
-        return BaseConfig(
-            client_id=self.client_id,
+        return BaseConfigResp(
+            account_id=self.account_id,
             valid_from=self.valid_from,
             valid_to=self.valid_to,
             pricing_type=self.pricing_type,
@@ -133,11 +131,11 @@ class DiscountGridTable(Base):
         )
 
 
-class ClientGroupsTable(Base):
-    __tablename__ = DbTables.client_group.value
+class AccountTable(Base):
+    __tablename__ = DbTables.accounts.value
 
     id = Column(
-        Integer, Sequence(DbSequences.groups.value), primary_key=True, index=True
+        Integer, Sequence(DbSequences.account.value), primary_key=True, index=True
     )
     client_ids = Column(String(255))
     client_group_name = Column(String(255))
@@ -145,9 +143,10 @@ class ClientGroupsTable(Base):
     valid_to = Column(DateTime)
     deleted_at = Column(DateTime)
 
-    def to_client_group(self) -> ClientGroup:
+    def to_account(self) -> Account:
         client_ids: str = self.client_ids
-        return ClientGroup(
+        return Account(
+            account_id=self.id,
             client_ids=client_ids.split(Deliminator.comma.value),
             client_group_name=self.client_group_name,
             valid_from=self.valid_from,

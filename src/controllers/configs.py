@@ -5,13 +5,7 @@ from typing import Union
 from fastapi import Response, status
 from sqlalchemy import desc
 
-from __app_configs import (
-    AppVars,
-    Deliminator,
-    LogMsg,
-    PricingImplementationTypes,
-    PricingTypes,
-)
+from __app_configs import Deliminator, LogMsg, PricingImplementationTypes, PricingTypes
 from __exceptions import ClientIdConfigError, UnsupportedConfigAfterUpdateError
 from database.main import db_dependency
 from database.models import (
@@ -20,7 +14,7 @@ from database.models import (
     PeakGridTable,
     VolumeGridTable,
 )
-from models.configs import BaseConfig, ConfigReq, ConfigResp
+from models.configs import BaseConfig, BaseConfigResp, ConfigReq, ConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 
 
@@ -30,9 +24,9 @@ class ConfigReqController:
     def __init__(self, config_req: BaseConfig) -> None:
         self.config_req = config_req
 
-    def format(self) -> ConfigReq:
+    def format(self, account_id: int) -> ConfigReq:
         return ConfigReq(
-            client_id=self.config_req.client_id,
+            account_id=account_id,
             valid_from=self.config_req.valid_from,
             valid_to=self.config_req.valid_to,
             pricing_type=self.config_req.pricing_type,
@@ -48,10 +42,11 @@ class ConfigReqController:
             deleted_at=None,
         )
 
-    def check_if_exists(self, db: db_dependency) -> bool:
+    def check_if_exists(self, db: db_dependency, account_id: int) -> bool:
         config_to_create = (
             db.query(ConfigTable)
-            .filter(ConfigTable.client_id == self.config_req.client_id)
+            .filter(ConfigTable.account_id == account_id)
+            .filter(ConfigTable.deleted_at.is_(None))
             .order_by(ConfigTable.valid_to)
             .first()
         )
@@ -66,22 +61,25 @@ class ConfigModelController:
 
     def update(self, config_req: ConfigReq) -> ConfigTable:
         updated_config: ConfigTable = self.config_model
-        if updated_config.client_id != config_req.client_id:
-            raise ClientIdConfigError(updated_config.client_id, config_req.client_id)
-        updated_config.client_id = config_req.client_id
+        if updated_config.account_id != config_req.account_id:
+            raise ClientIdConfigError(updated_config.account_id, config_req.account_id)
+        updated_config.account_id = config_req.account_id
         updated_config.valid_from = config_req.valid_from
         updated_config.valid_to = config_req.valid_to
         updated_config.pricing_type = config_req.pricing_type
         updated_config.config_type = config_req.config_type
         updated_config.package_size_option = config_req.package_size_option
         updated_config.transport_option = config_req.transport_option
+        updated_config.frequency = config_req.frequency
 
         return updated_config
 
     def expire(self, config_req: ConfigReq, db: db_dependency, logger: Logger) -> None:
         config_to_expire: ConfigTable = self.config_model
-        if config_to_expire.client_id != config_req.client_id:
-            raise ClientIdConfigError(config_to_expire.client_id, config_req.client_id)
+        if config_to_expire.account_id != config_req.account_id:
+            raise ClientIdConfigError(
+                config_to_expire.account_id, config_req.account_id
+            )
 
         config_to_expire.valid_to = config_req.valid_from
         if config_to_expire.valid_from >= config_to_expire.valid_to:
@@ -92,7 +90,7 @@ class ConfigModelController:
         logger.info(
             LogMsg.config_expired.value.format(
                 config_id=config_to_expire.id,
-                client_id=config_to_expire.client_id,
+                account_id=config_to_expire.account_id,
                 expire_date=config_to_expire.valid_to,
                 expire_from=config_to_expire.valid_from,
             )
@@ -190,7 +188,7 @@ class ConfigRespController:
                 config_model.pricing_type, config_model.config_type
             )
 
-    def get_config(self, config_model: BaseConfig) -> ConfigResp:
+    def get_config(self, config_model: BaseConfigResp) -> ConfigResp:
         if (
             config_model.config_type == PricingImplementationTypes.discount.value
             and config_model.pricing_type == PricingTypes.volume.value
@@ -210,7 +208,7 @@ class ConfigRespController:
             grids = self._get_volume_grids()
 
         return ConfigResp(
-            client_id=config_model.client_id,
+            account_id=config_model.account_id,
             valid_from=config_model.valid_from,
             valid_to=config_model.valid_to,
             pricing_type=config_model.pricing_type,
@@ -225,26 +223,35 @@ class ConfigRespController:
 
 
 class ConfigDeleteController:
-    client_id: int
+    account_id: int
     db: db_dependency
     logger: Logger
 
-    def __init__(self, client_id: int, db: db_dependency, logger: Logger) -> None:
-        self.client_id: int = client_id
+    def __init__(self, account_id: int, db: db_dependency, logger: Logger) -> None:
+        self.account_id: int = account_id
         self.db: db_dependency = db
         self.logger: Logger = logger
+
+    def _missing_config(self) -> Response:
+        self.logger.info(
+            LogMsg.account_not_found.value.format(account_id=self.account_id)
+        )
+        return Response(
+            content=LogMsg.account_not_found.value.format(account_id=self.account_id),
+            status_code=status.HTTP_200_OK,
+        )
 
     def _get_all_configs(self) -> list[ConfigTable]:
         return (
             self.db.query(ConfigTable)
-            .filter(ConfigTable.client_id == self.client_id)
+            .filter(ConfigTable.account_id == self.account_id)
             .all()
         )
 
     def _get_last_config(self) -> ConfigTable:
         return (
             self.db.query(ConfigTable)
-            .filter(ConfigTable.client_id == self.client_id)
+            .filter(ConfigTable.account_id == self.account_id)
             .filter(ConfigTable.deleted_at.is_(None))
             .order_by(desc(ConfigTable.valid_to))
             .first()
@@ -253,19 +260,13 @@ class ConfigDeleteController:
     def _get_config_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
         return [model.id for model in models_to_delete]
 
-    def _get_client_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
-        return [model.client_id for model in models_to_delete]
+    def _get_account_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
+        return [model.account_id for model in models_to_delete]
 
     def delete_all(self) -> None:
         models_to_delete = self._get_all_configs()
         if len(models_to_delete) == 0:
-            self.logger.info(
-                AppVars.no_client_config.value.format(client_id=self.client_id)
-            )
-            return Response(
-                content=AppVars.no_client_config.value.format(client_id=self.client_id),
-                status_code=status.HTTP_200_OK,
-            )
+            self._missing_config()
 
         for model in models_to_delete:
             model.deleted_at = datetime.now()
@@ -275,7 +276,7 @@ class ConfigDeleteController:
         self.logger.info(
             LogMsg.config_deleted.value.format(
                 config_id=self._get_config_ids(),
-                client_id=self._get_client_ids(),
+                account_id=self._get_account_ids(),
             )
         )
 
@@ -283,19 +284,13 @@ class ConfigDeleteController:
         model_to_delete = self._get_last_config()
 
         if model_to_delete is None:
-            self.logger.info(
-                AppVars.no_client_config.value.format(client_id=self.client_id)
-            )
-            return Response(
-                content=AppVars.no_client_config.value.format(client_id=self.client_id),
-                status_code=status.HTTP_200_OK,
-            )
+            self._missing_config()
 
         model_to_delete.deleted_at = datetime.now()
         self.db.add(model_to_delete)
         self.db.commit()
         self.logger.info(
             LogMsg.config_deleted.value.format(
-                config_id=model_to_delete.id, client_id=model_to_delete.client_id
+                config_id=model_to_delete.id, account_id=model_to_delete.account_id
             )
         )
