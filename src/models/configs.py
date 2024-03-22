@@ -65,8 +65,6 @@ class BaseConfig(BaseModel):
         if group_option not in Groups.list():
             raise InvalidInputError(value=group_option)
 
-        # TODO add validation that the Client Group ID exists in ClientGroup table if grouped config
-
         package_size_option = values.get(BaseConfigFields.package_size_option.value)
         for pkg in package_size_option:
             if pkg not in PackageSizes.list():

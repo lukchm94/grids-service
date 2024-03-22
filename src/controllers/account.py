@@ -1,10 +1,11 @@
 from datetime import datetime
 from logging import Logger
+from typing import Union
 
-from fastapi import Response, status
 from sqlalchemy import desc
 
 from __app_configs import AppVars, Deliminator, LogMsg
+from __exceptions import AccountNotFoundError, ClientIdMappedToAccountError
 from database.main import db_dependency
 from database.models import AccountTable
 from models.account import Account, AccountBaseReq, AccountReq
@@ -27,11 +28,13 @@ class AccountReqController:
         self.req = req
         self.logger = logger
 
+    def _get_unique_client_ids(self) -> str:
+        client_ids = list(set([str(client_id) for client_id in self.req.client_ids]))
+        return Deliminator.comma.value.join([str(id) for id in client_ids])
+
     def format(self) -> AccountReq:
         return AccountReq(
-            client_ids=Deliminator.comma.value.join(
-                [str(client_id) for client_id in self.req.client_ids]
-            ),
+            client_ids=self._get_unique_client_ids(),
             client_group_name=self.req.client_group_name,
             valid_from=self.req.valid_from,
             valid_to=self.req.valid_to,
@@ -49,12 +52,12 @@ class AccountReqController:
             )
 
         if len(accounts) == 0:
-            self.logger.warn(
-                LogMsg.client_id_exists_in_account.value.format(
-                    client_id=client_id, account_ids=_account_ids(accounts)
-                )
-            )
             return False
+        self.logger.warn(
+            LogMsg.client_id_exists_in_account.value.format(
+                client_id=client_id, account_ids=_account_ids(accounts)
+            )
+        )
         return True
 
 
@@ -116,11 +119,14 @@ class ClientAccountController:
         self.db: db_dependency = db
         self.logger: Logger = logger
 
-    def _missing_account(self) -> Response:
-        return Response(
-            content=LogMsg.account_not_found.value.format(account_id=self.client_id),
-            status_code=status.HTTP_204_NO_CONTENT,
-        )
+    def _missing_account(self) -> None:
+        raise AccountNotFoundError(account_id=None)
+
+    def _check_ind_account(self, accounts: list[AccountTable]) -> bool:
+        for account in accounts:
+            if int(account.client_ids) != int(self.client_id):
+                return False
+        return True
 
     def get_account_id(self) -> int:
         account: AccountTable = (
@@ -132,7 +138,7 @@ class ClientAccountController:
         )
         return account.id if account is not None else self._missing_account()
 
-    def check_if_exists(self) -> bool:
+    def check_if_exists(self) -> Union[None, int]:
         accounts: list[AccountTable] = (
             self.db.query(AccountTable)
             .filter(AccountTable.deleted_at.is_(None))
@@ -140,16 +146,22 @@ class ClientAccountController:
             .order_by(desc(AccountTable.valid_to))
             .all()
         )
-        for account in accounts:
-            print(account.to_account())
+
         if len(accounts) == 0:
-            self.logger.warn(
-                LogMsg.client_id_exists_in_account.value.format(
-                    client_id=self.client_id, account_ids=_account_ids(accounts)
+            self.logger.info(LogMsg.no_account.value.format(client_id=self.client_id))
+            return None
+
+        if self._check_ind_account(accounts):
+            self.logger.info(
+                LogMsg.account_exists.value.format(
+                    client_id=self.client_id, account_id=_account_ids(accounts)
                 )
             )
-            return False
-        return True
+            return accounts[0].id
+
+        raise ClientIdMappedToAccountError(
+            client_id=self.client_id, account_ids=_account_ids(accounts)
+        )
 
     def get_account_id_from_dates(self, dates_req: DatesReq) -> int:
         account: AccountTable = (

@@ -8,7 +8,6 @@ from models.configs import BaseConfig, BaseConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
 
 
-# TODO add deleted_at to models
 class ConfigTable(Base):
     __tablename__ = DbTables.configs.value
 

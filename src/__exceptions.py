@@ -50,12 +50,13 @@ class InvalidGroupError(HTTPException):
     def __init__(
         self,
         group: Optional[str] = None,
+        req_type: Optional[str] = None,
         status_code: int = 422,
-        detail: str = "Received unsupported FeeType: {group}",
+        detail: str = "Received unsupported Config Group: {group} for request: {req_type}",
         headers: Dict[str, str] | None = None,
     ) -> None:
         super().__init__(status_code, detail, headers)
-        self.detail = self.detail.format(group=group)
+        self.detail = self.detail.format(group=group, req_type=req_type)
 
 
 class UnsupportedFeeTypeError(Exception):
@@ -68,6 +69,41 @@ class GridReqConversionError(ValueError):
         super().__init__(
             "Each item in 'grids' must be an instance of VolumeGrid, PeakOffPeakGrid, or DiscountGrid"
         )
+
+
+class MissingGridsError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = 422,
+        detail: Any = "No grids provided in request",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+
+
+class AccountNotFoundError(HTTPException):
+    def __init__(
+        self,
+        account_id: int = None,
+        status_code: int = 204,
+        detail: Any = "Account ID: {account_id} not found.",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(account_id=account_id)
+
+
+class ClientIdMappedToAccountError(HTTPException):
+    def __init__(
+        self,
+        client_id: int = None,
+        account_ids: int = None,
+        status_code: int = 422,
+        detail: Any = "Client ID: {client_id} mapped to different accounts. Account IDs: {account_ids}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(client_id=client_id, account_ids=account_ids)
 
 
 class ClientIdConfigError(HTTPException):

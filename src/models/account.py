@@ -9,6 +9,9 @@ from __app_configs import AccountFields, Defaults
 from __exceptions import DatesError
 
 
+# TODO convert the Account to be built on the specific Client ID granularity
+# and not allow the strings in the field to adjust mapping between
+# account ID and client ID
 class AccountBaseReq(BaseModel):
     client_ids: list[int] = Field(default=Defaults.client_ids_example.value)
     client_group_name: Union[str, None] = Field(

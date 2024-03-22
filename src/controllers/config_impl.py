@@ -1,10 +1,9 @@
 from logging import Logger
 
-from fastapi import Response, status
 from sqlalchemy import desc
 
-from __app_configs import AppVars, Defaults, Groups, LogMsg
-from __exceptions import InvalidGroupError
+from __app_configs import Defaults, Groups, LogMsg
+from __exceptions import AccountNotFoundError, InvalidGroupError, MissingGridsError
 from controllers import account_impl
 from controllers.account import ClientAccountController
 from controllers.configs import (
@@ -38,12 +37,9 @@ class Getter:
             else account_controller.get_account_id()
         )
 
-    def _missing_account(self, account_id: int) -> Response:
+    def _missing_account(self, account_id: int) -> None:
         self.logger.info(LogMsg.account_not_found.value.format(account_id=account_id))
-        return Response(
-            content=LogMsg.account_not_found.value.format(account_id=account_id),
-            status_code=status.HTTP_200_OK,
-        )
+        raise AccountNotFoundError(account_id=account_id)
 
     def _get_config_resp(self, config_model: ConfigTable) -> ConfigResp:
         return ConfigRespController(config_model.id, self.db, self.logger).get_config(
@@ -55,7 +51,6 @@ class Getter:
 
     def config_by_client_id_date(self, dates_req: DatesReq, client_id: int) -> None:
         account_id = self._get_account_id(client_id, dates_req)
-
         config_model: ConfigTable = (
             self.db.query(ConfigTable)
             .filter(ConfigTable.account_id == account_id)
@@ -110,26 +105,13 @@ class Setter:
         self.logger: Logger = logger
         self.db: db_dependency = db
 
-    def _missing_account(self, account_id: int) -> Response:
+    def _missing_account(self, account_id: int) -> None:
         self.logger.warn(LogMsg.account_not_found.value.format(account_id=account_id))
-        return Response(
-            content=LogMsg.account_not_found.value.format(account_id=account_id),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        )
+        raise AccountNotFoundError(account_id=account_id)
 
-    def _missing_grids(self) -> Response:
+    def _missing_grids(self) -> None:
         self.logger.warn(LogMsg.missing_grids.value)
-        return Response(
-            content=LogMsg.missing_grids.value,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        )
-
-    def _client_id_mapped_to_account(self) -> Response:
-        self.logger.warn(LogMsg.client_id_exists_in_account.value.format())
-        return Response(
-            content=LogMsg.client_id_in_account.value,
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        )
+        raise MissingGridsError()
 
     def _create_account_req(self, client_id: int) -> AccountBaseReq:
         return AccountBaseReq(
@@ -157,17 +139,17 @@ class Setter:
     def _check_account(
         self, req: Config, client_id: int, req_controller: ConfigReqController
     ) -> ConfigReq:
-        if ClientAccountController(client_id, self.db, self.logger).check_if_exists():
-            self._client_id_mapped_to_account()
+        account_id = ClientAccountController(
+            client_id, self.db, self.logger
+        ).check_if_exists()
 
-        account_req = self._create_account_req(client_id)
-        account_id: int = account_impl.Setter(
-            logger=self.logger, db=self.db, account_req=account_req
-        ).create_account(return_account=True)
-
+        if account_id is None:
+            account_req = self._create_account_req(client_id)
+            account_id: int = account_impl.Setter(
+                logger=self.logger, db=self.db, account_req=account_req
+            ).create_account(return_account=True)
         req_controller: ConfigReqController = ConfigReqController(req)
         valid_req: ConfigReq = req_controller.format(account_id)
-
         self._expire(req_controller, valid_req, account_id)
 
         return valid_req
@@ -178,7 +160,7 @@ class Setter:
         self.db.commit()
         self.logger.info(
             LogMsg.config_created.value.format(
-                config_id=config_model.id, client_id=config_model.client_id
+                config_id=config_model.id, account_id=config_model.account_id
             )
         )
         last_config = self.db.query(ConfigTable).order_by(desc(ConfigTable.id)).first()
@@ -208,7 +190,7 @@ class Setter:
         if len(req.grids) == 0:
             self._missing_grids()
         if req.group == Groups.group.value:
-            raise InvalidGroupError(req.group)
+            raise InvalidGroupError(group=req.group, req_type=Groups.individual.value)
 
         req_controller: ConfigReqController = ConfigReqController(req)
         valid_req: ConfigReq = self._check_account(req, client_id, req_controller)
@@ -219,13 +201,13 @@ class Setter:
         if len(req.grids) == 0:
             self._missing_grids()
         if req.group == Groups.individual.value:
-            raise InvalidGroupError(req.group)
+            raise InvalidGroupError(group=req.group, req_type=Groups.group.value)
 
         req_controller: ConfigReqController = ConfigReqController(req)
-        if req_controller.check_if_exists(self.db, account_id):
-            self._missing_account(account_id)
-
         valid_req: ConfigReq = req_controller.format(account_id)
+        if req_controller.check_if_exists(self.db, account_id):
+            self._expire(req_controller, valid_req, account_id)
+
         last_config = self._upload_config(valid_req)
         self._upload_grids(req, last_config, valid_req)
 

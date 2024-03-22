@@ -221,3 +221,5 @@ class LogMsg(str, ValidationEnum):
     client_id_in_account = "One of client IDs mapped to different account"
     account_deleted = "Account ID: {account_id} for Client IDs: {client_ids} created."
     account_not_found = "Account ID: {account_id} not found."
+    no_account = "No account mapped to Client ID: {client_id}"
+    account_exists = "Account ID: {account_id}. Exists for Client ID: {client_id}"

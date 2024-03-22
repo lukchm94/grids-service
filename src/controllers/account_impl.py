@@ -1,9 +1,9 @@
 from logging import Logger
 
-from fastapi import Response, status
 from sqlalchemy import desc
 
 from __app_configs import LogMsg, return_elements
+from __exceptions import AccountNotFoundError, ClientIdMappedToAccountError
 from controllers.account import AccountReqController, AccountRespController
 from database.main import db_dependency
 from database.models import AccountTable
@@ -18,13 +18,8 @@ class Getter:
         self.logger: Logger = logger
         self.db: db_dependency = db
 
-    def _missing_acount(self) -> Response:
-        return Response(
-            content=LogMsg.missing_group.value,
-            status_code=status.HTTP_204_NO_CONTENT,
-        )
-
     def all_accounts_by_client_id(self, client_id: int) -> None:
+        # TODO fix getting Accounts with like
         account_models: list[AccountTable] = (
             self.db.query(AccountTable)
             .filter(AccountTable.client_ids.like(f"%{client_id}%"))
@@ -32,12 +27,11 @@ class Getter:
             .order_by(desc(AccountTable.valid_to))
             .all()
         )
+        if len(account_models) == 0:
+            self.logger.warn(LogMsg.no_account.value.format(client_id=client_id))
+            raise AccountNotFoundError()
 
-        return (
-            self._missing_acount()
-            if len(account_models) == 0
-            else AccountRespController(account_models).resp()
-        )
+        return AccountRespController(account_models).resp()
 
     def all_accounts_by_id(self, id: int) -> None:
         account_models: list[AccountTable] = (
@@ -46,9 +40,8 @@ class Getter:
             .order_by(desc(AccountTable.valid_to))
             .all()
         )
-
         if len(account_models) == 0:
-            return self._missing_acount()
+            raise AccountNotFoundError()
 
         accounts: list[Account] = [model.to_account() for model in account_models]
         return return_elements(accounts)
@@ -62,11 +55,10 @@ class Getter:
             .first()
         )
 
-        return (
-            self._missing_acount()
-            if account_model is None
-            else account_model.to_account()
-        )
+        if account_model is None:
+            raise AccountNotFoundError()
+
+        return account_model.to_account()
 
 
 class Setter:
@@ -84,10 +76,7 @@ class Setter:
     def create_account(self, return_account: bool = False):
         req_controller = AccountReqController(self.account_req, self.logger)
         if req_controller.check_if_exists(self.db):
-            return Response(
-                content=LogMsg.client_id_in_account.value,
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
+            raise ClientIdMappedToAccountError()
 
         valid_req = req_controller.format()
         account_model = AccountTable(**valid_req.model_dump())
@@ -96,7 +85,7 @@ class Setter:
         account = self.db.query(AccountTable).order_by(desc(AccountTable.id)).first()
         self.logger.info(
             LogMsg.account_created.value.format(
-                client_id=account.id, client_ids=account_model.client_ids
+                account_id=account.id, client_ids=account_model.client_ids
             )
         )
         if return_account:

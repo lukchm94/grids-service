@@ -25,7 +25,7 @@ async def get_config_by_client_date(
 ):
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
-        Getter(logger, db).config_by_client_id_date(dates_req, client_id)
+        return Getter(logger, db).config_by_client_id_date(dates_req, client_id)
     except Exception as err:
         logger.error(err)
 
@@ -33,7 +33,7 @@ async def get_config_by_client_date(
 @router.get(Paths.all_config.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_configs_by_client_id(db: db_dependency, client_id: int = Path(gt=0)):
     try:
-        Getter(logger, db).all_config_by_client_id(client_id)
+        return Getter(logger, db).all_config_by_client_id(client_id)
     except Exception as err:
         logger.error(err)
 
@@ -41,7 +41,7 @@ async def get_configs_by_client_id(db: db_dependency, client_id: int = Path(gt=0
 @router.get(Paths.last_config.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_last_config_by_client_id(db: db_dependency, client_id: int = Path(gt=0)):
     try:
-        Getter(logger, db).last_config_by_client_id(client_id)
+        return Getter(logger, db).last_config_by_client_id(client_id)
     except Exception as err:
         logger.error(err)
 

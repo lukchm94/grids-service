@@ -2,11 +2,14 @@ from datetime import datetime
 from logging import Logger
 from typing import Union
 
-from fastapi import Response, status
 from sqlalchemy import desc
 
 from __app_configs import Deliminator, LogMsg, PricingImplementationTypes, PricingTypes
-from __exceptions import ClientIdConfigError, UnsupportedConfigAfterUpdateError
+from __exceptions import (
+    AccountNotFoundError,
+    ClientIdConfigError,
+    UnsupportedConfigAfterUpdateError,
+)
 from database.main import db_dependency
 from database.models import (
     ConfigTable,
@@ -232,14 +235,11 @@ class ConfigDeleteController:
         self.db: db_dependency = db
         self.logger: Logger = logger
 
-    def _missing_config(self) -> Response:
+    def _missing_config(self) -> None:
         self.logger.info(
             LogMsg.account_not_found.value.format(account_id=self.account_id)
         )
-        return Response(
-            content=LogMsg.account_not_found.value.format(account_id=self.account_id),
-            status_code=status.HTTP_200_OK,
-        )
+        raise AccountNotFoundError(self.account_id)
 
     def _get_all_configs(self) -> list[ConfigTable]:
         return (
@@ -275,8 +275,8 @@ class ConfigDeleteController:
         self.db.commit()
         self.logger.info(
             LogMsg.config_deleted.value.format(
-                config_id=self._get_config_ids(),
-                account_id=self._get_account_ids(),
+                config_id=self._get_config_ids(models_to_delete),
+                account_id=self._get_account_ids(models_to_delete),
             )
         )
 

@@ -16,7 +16,7 @@ router = APIRouter(prefix=Paths.accounts.value, tags=[Paths.account_tag.value])
 @router.get(Paths.all_acct_by_client.value + "{id}", status_code=status.HTTP_200_OK)
 async def get_all_accounts_by_client_id(db: db_dependency, id: int = Path(gt=0)):
     try:
-        Getter(logger, db).all_accounts_by_client_id(id)
+        return Getter(logger, db).all_accounts_by_client_id(id)
 
     except Exception as err:
         logger.error(err)
@@ -25,7 +25,7 @@ async def get_all_accounts_by_client_id(db: db_dependency, id: int = Path(gt=0))
 @router.get(Paths.all_accounts.value + "{id}", status_code=status.HTTP_200_OK)
 async def get_all_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
     try:
-        Getter(logger, db).all_accounts_by_id(id)
+        return Getter(logger, db).all_accounts_by_id(id)
 
     except Exception as err:
         logger.error(err)
@@ -34,7 +34,7 @@ async def get_all_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
 @router.get(Paths.last_account.value + "{id}", status_code=status.HTTP_200_OK)
 async def get_last_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
     try:
-        Getter(logger, db).last_accounts_by_id(id)
+        return Getter(logger, db).last_accounts_by_id(id)
 
     except Exception as err:
         logger.error(err)
