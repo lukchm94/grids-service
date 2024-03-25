@@ -126,13 +126,10 @@ class DbTables(str, ValidationEnum):
     volume_grids = "volume_grids"
     discount_grids = "discount_grids"
     accounts = "accounts"
-    config_table = "ConfigTable"
-    discount_table = "DiscountGridTable"
-    volume_table = "VolumeGridTable"
-    account_table = "AccountTable"
+    accounts_seq = "accounts_sequence"
     peak_table = "PeakGridTable"
     config_fk = f"{configs}.id"
-    account_fk = f"{accounts}.id"
+    account_fk = f"{accounts_seq}.id"
 
 
 class DbSequences(str, ValidationEnum):
@@ -140,7 +137,8 @@ class DbSequences(str, ValidationEnum):
     peak_grid = "peak_grids_id_seq"
     volume_grid = "volume_grids_id_seq"
     discount_grid = "discount_grids_id_seq"
-    account = "account_id_seq"
+    account = "account_table_id_seq"
+    account_id = "account_id_seq"
 
 
 class BaseConfigFields(str, ValidationEnum):
@@ -185,6 +183,7 @@ class Defaults(ValidationEnum):
     client_ids_example: list[int] = [1001, 1002, 1003]
     group_name_example: str = "Test Client Group"
     ind_account_name: str = "Individual Account Client ID: {client_id}"
+    account_id_seq: int = 1000000
 
 
 class GridsValidationTypes(str, ValidationEnum):
@@ -223,3 +222,4 @@ class LogMsg(str, ValidationEnum):
     account_not_found = "Account ID: {account_id} not found."
     no_account = "No account mapped to Client ID: {client_id}"
     account_exists = "Account ID: {account_id}. Exists for Client ID: {client_id}"
+    acct_seq_created = "Account ID: {account_id} added to AccountSequenceTable"

@@ -22,6 +22,18 @@ class InvalidInputError(Exception):
         )
 
 
+class UnsupportedFeeTypeError(Exception):
+    def __init__(self, fee_type: str) -> None:
+        super().__init__(f"Received unsupported FeeType: {fee_type}")
+
+
+class GridReqConversionError(ValueError):
+    def __init__(self) -> None:
+        super().__init__(
+            "Each item in 'grids' must be an instance of VolumeGrid, PeakOffPeakGrid, or DiscountGrid"
+        )
+
+
 class DatesError(HTTPException):
     def __init__(
         self,
@@ -59,18 +71,6 @@ class InvalidGroupError(HTTPException):
         self.detail = self.detail.format(group=group, req_type=req_type)
 
 
-class UnsupportedFeeTypeError(Exception):
-    def __init__(self, fee_type: str) -> None:
-        super().__init__(f"Received unsupported FeeType: {fee_type}")
-
-
-class GridReqConversionError(ValueError):
-    def __init__(self) -> None:
-        super().__init__(
-            "Each item in 'grids' must be an instance of VolumeGrid, PeakOffPeakGrid, or DiscountGrid"
-        )
-
-
 class MissingGridsError(HTTPException):
     def __init__(
         self,
@@ -91,6 +91,18 @@ class AccountNotFoundError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(account_id=account_id)
+
+
+class MultipleAccountsError(HTTPException):
+    def __init__(
+        self,
+        account_ids: set = None,
+        status_code: int = 422,
+        detail: Any = "Account IDs: {account_ids} mapped to different multiple accounts.",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(account_ids=account_ids)
 
 
 class ClientIdMappedToAccountError(HTTPException):

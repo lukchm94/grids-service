@@ -9,11 +9,26 @@ from __app_configs import AccountFields, Defaults
 from __exceptions import DatesError
 
 
-# TODO convert the Account to be built on the specific Client ID granularity
-# and not allow the strings in the field to adjust mapping between
-# account ID and client ID
 class AccountBaseReq(BaseModel):
     client_ids: list[int] = Field(default=Defaults.client_ids_example.value)
+    client_group_name: Union[str, None] = Field(
+        default=Defaults.group_name_example.value
+    )
+    valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
+    valid_to: Union[None, datetime] = Field(default=None)
+
+    @model_validator(mode="before")
+    def validate_config(cls, values: dict):
+        valid_from = values.get(AccountFields.valid_from.value)
+        valid_to = values.get(AccountFields.valid_to.value)
+        if valid_to is not None and valid_to < valid_from:
+            raise DatesError(valid_from=valid_from, valid_to=valid_to)
+        return values
+
+
+class Account(BaseModel):
+    account_id: int = Field(gt=0, default=1)
+    client_id: int = Field(gt=0, default=1)
     client_group_name: Union[str, None] = Field(
         default=Defaults.group_name_example.value
     )
@@ -30,9 +45,20 @@ class AccountBaseReq(BaseModel):
         return values
 
 
-class AccountReq(AccountBaseReq):
-    client_ids: str
-
-
-class Account(AccountBaseReq):
+class AccountResp(BaseModel):
     account_id: int = Field(gt=0, default=1)
+    client_ids: list[int]
+    client_group_name: Union[str, None] = Field(
+        default=Defaults.group_name_example.value
+    )
+    valid_from: datetime = Field(default=datetime.today() + timedelta(days=1))
+    valid_to: Union[None, datetime] = Field(default=None)
+    deleted_at: Union[None, datetime] = Field(default=None)
+
+    @model_validator(mode="before")
+    def validate_config(cls, values: dict):
+        valid_from = values.get(AccountFields.valid_from.value)
+        valid_to = values.get(AccountFields.valid_to.value)
+        if valid_to is not None and valid_to < valid_from:
+            raise DatesError(valid_from=valid_from, valid_to=valid_to)
+        return values

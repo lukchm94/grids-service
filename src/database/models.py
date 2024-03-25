@@ -136,19 +136,30 @@ class AccountTable(Base):
     id = Column(
         Integer, Sequence(DbSequences.account.value), primary_key=True, index=True
     )
-    client_ids = Column(String(255))
+    account_id = Column(Integer, ForeignKey(DbTables.account_fk.value))
+    client_id = Column(Integer)
     client_group_name = Column(String(255))
     valid_from = Column(DateTime)
     valid_to = Column(DateTime)
     deleted_at = Column(DateTime)
 
     def to_account(self) -> Account:
-        client_ids: str = self.client_ids
         return Account(
-            account_id=self.id,
-            client_ids=client_ids.split(Deliminator.comma.value),
+            account_id=self.account_id,
+            client_id=self.client_id,
             client_group_name=self.client_group_name,
             valid_from=self.valid_from,
             valid_to=self.valid_to,
             deleted_at=self.deleted_at,
         )
+
+
+class AccountSequenceTable(Base):
+    __tablename__ = DbTables.accounts_seq.value
+
+    id = Column(
+        Integer,
+        Sequence(DbSequences.account_id.value),
+        primary_key=True,
+        index=True,
+    )

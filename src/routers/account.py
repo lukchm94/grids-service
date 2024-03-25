@@ -31,15 +31,6 @@ async def get_all_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
         logger.error(err)
 
 
-@router.get(Paths.last_account.value + "{id}", status_code=status.HTTP_200_OK)
-async def get_last_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
-    try:
-        return Getter(logger, db).last_accounts_by_id(id)
-
-    except Exception as err:
-        logger.error(err)
-
-
 @router.post(Paths.root.value, status_code=status.HTTP_201_CREATED)
 async def create_account(db: db_dependency, account_req: AccountBaseReq):
     try:

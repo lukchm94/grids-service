@@ -81,21 +81,6 @@ class Getter:
             else self._get_list_configs(config_models)
         )
 
-    def last_config_by_client_id(self, client_id: int) -> None:
-        account_id = self._get_account_id(client_id)
-        config_models: list[ConfigTable] = (
-            self.db.query(ConfigTable)
-            .filter(ConfigTable.account_id == account_id)
-            .filter(ConfigTable.deleted_at.is_(None))
-            .all()
-        )
-
-        return (
-            self._missing_account(client_id)
-            if len(config_models) == 0
-            else self._get_list_configs(config_models)
-        )
-
 
 class Setter:
     logger: Logger
@@ -186,6 +171,7 @@ class Setter:
             )
         )
 
+    # TODO check the logic for creating IND and Group Accounts
     def create_ind_config(self, req: Config, client_id: int) -> None:
         if len(req.grids) == 0:
             self._missing_grids()

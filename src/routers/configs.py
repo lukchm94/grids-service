@@ -38,14 +38,6 @@ async def get_configs_by_client_id(db: db_dependency, client_id: int = Path(gt=0
         logger.error(err)
 
 
-@router.get(Paths.last_config.value + "{client_id}", status_code=status.HTTP_200_OK)
-async def get_last_config_by_client_id(db: db_dependency, client_id: int = Path(gt=0)):
-    try:
-        return Getter(logger, db).last_config_by_client_id(client_id)
-    except Exception as err:
-        logger.error(err)
-
-
 @router.post(Paths.ind.value + "{id}", status_code=status.HTTP_201_CREATED)
 async def create_ind_config(db: db_dependency, req: Config, id: int = Path(gt=0)):
     try:

@@ -44,7 +44,6 @@ class BaseConfig(BaseModel):
     package_size_option: list[str] = Field(default=PackageSizes.list())
     transport_option: list[str] = Field(default=TransportTypes.list())
     frequency: str = Field(default=Frequency.week.value)
-    deleted_at: Union[None, datetime] = Field(default=None)
 
     @model_validator(mode="before")
     def validate_config(cls, values: dict):
@@ -114,12 +113,14 @@ class BaseConfig(BaseModel):
 
 class BaseConfigResp(BaseConfig):
     account_id: int = Field(gt=0, default=1)
+    deleted_at: Union[None, datetime] = Field(default=None)
 
 
 class ConfigReq(BaseConfig):
     account_id: int = Field(gt=0, default=1)
     package_size_option: str = Field(default=PackageSizes.to_string())
     transport_option: str = Field(default=TransportTypes.to_string())
+    deleted_at: Union[None, datetime] = Field(default=None)
 
     @model_validator(mode="before")
     def validate_config(cls, values: dict):
