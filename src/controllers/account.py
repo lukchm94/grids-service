@@ -5,11 +5,7 @@ from typing import Union
 from sqlalchemy import desc
 
 from __app_configs import AppVars, LogMsg
-from __exceptions import (
-    AccountNotFoundError,
-    ClientIdMappedToAccountError,
-    MultipleAccountsError,
-)
+from __exceptions import AccountNotFoundError, MultipleAccountsError
 from database.main import db_dependency
 from database.models import AccountSequenceTable, AccountTable
 from models.account import Account, AccountBaseReq, AccountResp
@@ -68,24 +64,22 @@ class AccountReqController:
             )
         return formatted_requests
 
-    def check_if_exists(self) -> bool:
+    def check_if_exists(self) -> Union[Account, None]:
         for client_id in self.req.client_ids:
-            accounts = (
+            account = (
                 self.db.query(AccountTable)
                 .filter(AccountTable.client_id == client_id)
                 .filter(AccountTable.deleted_at.is_(None))
                 .order_by(AccountTable.valid_to)
-                .all()
+                .first()
             )
-
-        if len(accounts) == 0:
-            return False
-        self.logger.warn(
-            LogMsg.client_id_exists_in_account.value.format(
-                client_id=client_id, account_ids=_account_ids(accounts)
-            )
-        )
-        return True
+            if account is not None:
+                self.logger.warn(
+                    LogMsg.client_id_exists_in_account.value.format(
+                        client_id=client_id, account_ids=account.account_id
+                    )
+                )
+                return account.to_account()
 
 
 class AccountDeleteController:
@@ -172,46 +166,15 @@ class ClientAccountController:
         self.db: db_dependency = db
         self.logger: Logger = logger
 
-    def _check_ind_account(self, accounts: list[AccountTable]) -> bool:
-        for account in accounts:
-            if int(account.client_ids) != int(self.client_id):
-                return False
-        return True
-
-    def check_if_exists(self) -> Union[None, int]:
-        accounts: list[AccountTable] = (
-            self.db.query(AccountTable)
-            .filter(AccountTable.deleted_at.is_(None))
-            .filter(AccountTable.client_ids.like(f"%{self.client_id}%"))
-            .order_by(desc(AccountTable.valid_to))
-            .all()
-        )
-
-        if len(accounts) == 0:
-            self.logger.info(LogMsg.no_account.value.format(client_id=self.client_id))
-            return None
-
-        if self._check_ind_account(accounts):
-            self.logger.info(
-                LogMsg.account_exists.value.format(
-                    client_id=self.client_id, account_id=_account_ids(accounts)
-                )
-            )
-            return accounts[0].id
-
-        raise ClientIdMappedToAccountError(
-            client_id=self.client_id, account_ids=_account_ids(accounts)
-        )
-
-    def get_account_id_from_dates(self, dates_req: DatesReq) -> int:
-        account_id = self.get_account_id()
-        if account_id is None:
+    def get_account_from_dates(self, dates_req: DatesReq) -> Union[Account, None]:
+        account = self.get_account()
+        if account is None:
             raise AccountNotFoundError()
 
         account: AccountTable = (
             self.db.query(AccountTable)
             .filter(AccountTable.deleted_at.is_(None))
-            .filter(AccountTable.account_id == account_id)
+            .filter(AccountTable.account_id == account.account_id)
             .filter(AccountTable.valid_from <= dates_req.start)
             .filter(
                 (AccountTable.valid_to > dates_req.end)
@@ -220,24 +183,9 @@ class ClientAccountController:
             .order_by(desc(AccountTable.valid_to))
             .first()
         )
-        return account.account_id
+        return account.to_account() if account is not None else None
 
-    def get_account_id_dates(self, dates_req: DatesReq) -> Union[int, None]:
-        account = (
-            self.db.query(AccountTable)
-            .filter(AccountTable.client_id == self.client_id)
-            .filter(AccountTable.deleted_at.is_(None))
-            .filter(AccountTable.valid_from <= dates_req.start)
-            .filter(
-                (AccountTable.valid_to > dates_req.end)
-                | (AccountTable.valid_to.is_(None))
-            )
-            .order_by(desc(AccountTable.valid_to))
-            .first()
-        )
-        return account.account_id if account is not None else None
-
-    def get_account_id(self) -> Union[int, None]:
+    def get_account(self) -> Union[Account, None]:
         account = (
             self.db.query(AccountTable)
             .filter(AccountTable.client_id == self.client_id)
@@ -245,4 +193,4 @@ class ClientAccountController:
             .order_by(desc(AccountTable.valid_to))
             .first()
         )
-        return account.account_id if account is not None else None
+        return account if account is not None else None

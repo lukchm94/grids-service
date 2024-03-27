@@ -5,7 +5,6 @@ from fastapi import APIRouter, Path, Query, status
 
 from __app_configs import Paths
 from controllers.config_impl import Getter, Setter
-from controllers.configs import ConfigDeleteController
 from controllers.query_req import DateReqController
 from database.main import db_dependency
 from models.configs import BaseConfig, Config
@@ -65,7 +64,7 @@ async def update_last_config(db: db_dependency, req: BaseConfig, id: int = Path(
 @router.put(Paths.del_all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
     try:
-        ConfigDeleteController(id, db, logger).delete_all()
+        Setter(logger, db).delete_all(id)
     except Exception as err:
         logger.error(err)
 
@@ -75,6 +74,6 @@ async def delete_all_config(db: db_dependency, id: int = Path(gt=0)):
 )
 async def delete_last_config(db: db_dependency, id: int = Path(gt=0)):
     try:
-        ConfigDeleteController(id, db, logger).delete_last()
+        Setter(logger, db).delete_last(id)
     except Exception as err:
         logger.error(err)

@@ -34,6 +34,17 @@ class GridReqConversionError(ValueError):
         )
 
 
+class InvalidConfigError(Exception):
+    def __init__(
+        self,
+        config: Optional[str] = None,
+        pricing: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            f"Invalid configuration received. Configuration: {config}, Pricing Type: {pricing}."
+        )
+
+
 class DatesError(HTTPException):
     def __init__(
         self,
@@ -45,17 +56,6 @@ class DatesError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(valid_to=valid_to, valid_from=valid_from)
-
-
-class InvalidConfigError(Exception):
-    def __init__(
-        self,
-        config: Optional[str] = None,
-        pricing: Optional[str] = None,
-    ) -> None:
-        super().__init__(
-            f"Invalid configuration received. Configuration: {config}, Pricing Type: {pricing}."
-        )
 
 
 class InvalidGroupError(HTTPException):
@@ -129,6 +129,24 @@ class ClientIdConfigError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(db_id=db_id, req_id=req_id)
+
+
+class ConfigGroupError(HTTPException):
+    def __init__(
+        self,
+        account_id: int,
+        req_group: str,
+        existing_group: str,
+        status_code: int = 422,
+        detail: Any = "Account ID: {account_id}. Invalid config group type: {req_group} and for existing config group type: {existing_group}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(
+            account_id=account_id,
+            req_group=req_group.upper(),
+            existing_group=existing_group.upper(),
+        )
 
 
 class UnsupportedConfigAfterUpdateError(HTTPException):

@@ -79,9 +79,11 @@ class Setter:
 
     def create_account(self, return_account: bool = False):
         req_controller = AccountReqController(self.account_req, self.logger, self.db)
-
-        if req_controller.check_if_exists():
-            raise ClientIdMappedToAccountError()
+        account = req_controller.check_if_exists()
+        if account is not None:
+            raise ClientIdMappedToAccountError(
+                client_id=account.client_id, account_ids=account.account_id
+            )
 
         valid_requests = req_controller.format()
         for req in valid_requests:
@@ -96,4 +98,4 @@ class Setter:
             )
         )
         if return_account:
-            return list[self._get_account_id_from_req()][0]
+            return valid_requests[0]

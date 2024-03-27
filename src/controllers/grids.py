@@ -114,24 +114,18 @@ class GridReqController:
         vol_max: int = len(set([grid.max_volume_threshold for grid in ordered_grids]))
 
         if vol_max != vol_min:
-            raise GridsValuesError(
-                client_id=self.req.client_id, type=GridsValidationTypes.vol.value
-            )
+            raise GridsValuesError(type=GridsValidationTypes.vol.value)
 
         dist_min: int = len(set([grid.min_distance_in_unit for grid in ordered_grids]))
         dist_max: int = len(set([grid.max_distance_in_unit for grid in ordered_grids]))
 
         if dist_max != dist_min:
-            raise GridsValuesError(
-                client_id=self.req.client_id, type=GridsValidationTypes.dist.value
-            )
+            raise GridsValuesError(type=GridsValidationTypes.dist.value)
 
         expected_grids_len: int = vol_min * dist_min
 
         if expected_grids_len != len(ordered_grids):
-            raise GridsValuesError(
-                client_id=self.req.client_id, type=GridsValidationTypes.totals.value
-            )
+            raise GridsValuesError(type=GridsValidationTypes.totals.value)
 
         return ordered_grids
 
@@ -202,7 +196,6 @@ class GridReqController:
 class GridDeleteController:
     db: db_dependency
     config_id: int
-    client_id: int
     config_type: str
     pricing_type: str
     logger: Logger
@@ -211,18 +204,13 @@ class GridDeleteController:
         self, config_model: ConfigTable, db: db_dependency, logger: Logger
     ) -> GridDeleteController:
         self.config_id = config_model.id
-        self.client_id = config_model.client_id
         self.config_type = config_model.config_type
         self.pricing_type = config_model.pricing_type
         self.db = db
         self.logger = logger
 
     def _log(self) -> None:
-        self.logger.info(
-            LogMsg.grids_deleted.value.format(
-                config_id=self.config_id, client_id=self.client_id
-            )
-        )
+        self.logger.info(LogMsg.grids_deleted.value.format(config_id=self.config_id))
 
     def delete(self) -> None:
         if (

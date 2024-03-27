@@ -47,6 +47,7 @@ class ValidationEnum(Enum):
         return {member.name: member.value for member in cls}
 
 
+# TODO clean the validation errors
 class AppVars(str, Enum):
     elements = "elements"
     data = "data"

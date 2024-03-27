@@ -1,13 +1,10 @@
-from datetime import datetime
 from logging import Logger
 from typing import Union
 
-from sqlalchemy import desc
-
 from __app_configs import Deliminator, LogMsg, PricingImplementationTypes, PricingTypes
 from __exceptions import (
-    AccountNotFoundError,
     ClientIdConfigError,
+    ConfigGroupError,
     UnsupportedConfigAfterUpdateError,
 )
 from database.main import db_dependency
@@ -66,11 +63,18 @@ class ConfigModelController:
         updated_config: ConfigTable = self.config_model
         if updated_config.account_id != config_req.account_id:
             raise ClientIdConfigError(updated_config.account_id, config_req.account_id)
+        if updated_config.group != config_req.group:
+            raise ConfigGroupError(
+                account_id=updated_config.account_id,
+                req_group=config_req.group,
+                existing_group=updated_config.group,
+            )
         updated_config.account_id = config_req.account_id
         updated_config.valid_from = config_req.valid_from
         updated_config.valid_to = config_req.valid_to
         updated_config.pricing_type = config_req.pricing_type
         updated_config.config_type = config_req.config_type
+        updated_config.group = config_req.group
         updated_config.package_size_option = config_req.package_size_option
         updated_config.transport_option = config_req.transport_option
         updated_config.frequency = config_req.frequency
@@ -222,75 +226,4 @@ class ConfigRespController:
             frequency=config_model.frequency,
             deleted_at=config_model.deleted_at,
             grids=grids,
-        )
-
-
-class ConfigDeleteController:
-    account_id: int
-    db: db_dependency
-    logger: Logger
-
-    def __init__(self, account_id: int, db: db_dependency, logger: Logger) -> None:
-        self.account_id: int = account_id
-        self.db: db_dependency = db
-        self.logger: Logger = logger
-
-    def _missing_config(self) -> None:
-        self.logger.info(
-            LogMsg.account_not_found.value.format(account_id=self.account_id)
-        )
-        raise AccountNotFoundError(self.account_id)
-
-    def _get_all_configs(self) -> list[ConfigTable]:
-        return (
-            self.db.query(ConfigTable)
-            .filter(ConfigTable.account_id == self.account_id)
-            .all()
-        )
-
-    def _get_last_config(self) -> ConfigTable:
-        return (
-            self.db.query(ConfigTable)
-            .filter(ConfigTable.account_id == self.account_id)
-            .filter(ConfigTable.deleted_at.is_(None))
-            .order_by(desc(ConfigTable.valid_to))
-            .first()
-        )
-
-    def _get_config_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
-        return [model.id for model in models_to_delete]
-
-    def _get_account_ids(self, models_to_delete: list[ConfigTable]) -> list[int]:
-        return [model.account_id for model in models_to_delete]
-
-    def delete_all(self) -> None:
-        models_to_delete = self._get_all_configs()
-        if len(models_to_delete) == 0:
-            self._missing_config()
-
-        for model in models_to_delete:
-            model.deleted_at = datetime.now()
-            self.db.add(model)
-
-        self.db.commit()
-        self.logger.info(
-            LogMsg.config_deleted.value.format(
-                config_id=self._get_config_ids(models_to_delete),
-                account_id=self._get_account_ids(models_to_delete),
-            )
-        )
-
-    def delete_last(self) -> None:
-        model_to_delete = self._get_last_config()
-
-        if model_to_delete is None:
-            self._missing_config()
-
-        model_to_delete.deleted_at = datetime.now()
-        self.db.add(model_to_delete)
-        self.db.commit()
-        self.logger.info(
-            LogMsg.config_deleted.value.format(
-                config_id=model_to_delete.id, account_id=model_to_delete.account_id
-            )
         )
