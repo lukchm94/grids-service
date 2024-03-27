@@ -18,3 +18,6 @@ class DatesReq(BaseModel):
             raise DatesError(valid_from=date_start, valid_to=date_end)
 
         return values
+
+    def to_str(self) -> str:
+        return f"{self.start.date()} - {self.end.date()}"

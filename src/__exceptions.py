@@ -45,6 +45,11 @@ class InvalidConfigError(Exception):
         )
 
 
+class InvalidStatusError(Exception):
+    def __init__(self, status: str, id: int = None) -> None:
+        super().__init__(f"Received invalid status: {status} for Delivery ID: {id}")
+
+
 class DatesError(HTTPException):
     def __init__(
         self,
@@ -91,6 +96,19 @@ class AccountNotFoundError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(account_id=account_id)
+
+
+class VolumesNotFoundError(HTTPException):
+    def __init__(
+        self,
+        account_id: int = None,
+        date_range: str = None,
+        status_code: int = 204,
+        detail: Any = "Volumes for date ranges: {date_range} for Account ID: {account_id} not found.",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(date_range=date_range, account_id=account_id)
 
 
 class MultipleAccountsError(HTTPException):

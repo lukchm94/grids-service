@@ -1,5 +1,4 @@
 from datetime import datetime
-from logging import Logger
 
 from fastapi import APIRouter, Path, Query, status
 
@@ -9,13 +8,12 @@ from controllers.query_req import DateReqController
 from database.main import db_dependency
 from models.configs import BaseConfig, Config
 from models.query_req import DatesReq
-from utils.logger import get_cloudwatch_logger
+from utils.logger import logger
 
-logger: Logger = get_cloudwatch_logger()
 router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
 
 
-@router.get(Paths.config_dates.value + "{client_id}", status_code=status.HTTP_200_OK)
+@router.get(Paths.dates.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_config_by_client_date(
     db: db_dependency,
     client_id: int = Path(gt=0),

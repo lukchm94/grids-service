@@ -67,6 +67,7 @@ class Paths(str, Enum):
     ind = f"{root}individual{root}"
     group = f"{root}group{root}"
     delete = "delete"
+    dates = "/dates/"
     config_tag = "configs"
     grids_tag = "grids"
     grids = f"{root}{grids_tag}"
@@ -76,7 +77,6 @@ class Paths(str, Enum):
     discount = f"{root}discount"
     last_config = f"/{last}"
     all_config = f"/{all}"
-    config_dates = f"/dates/"
     del_last_config = f"/{delete}/{last}"
     del_all_config = f"/{delete}/{all}"
     account_tag = "accounts"
@@ -86,6 +86,8 @@ class Paths(str, Enum):
     all_acct_by_client = f"{client_id}{all}"
     last_account = f"{root}{last}"
     delete_account = f"{root}{delete}"
+    volumes_tag = "volumes"
+    volumes = f"{root}{volumes_tag}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -121,6 +123,12 @@ class Groups(str, ValidationEnum):
     group = "group"
 
 
+class DeliveryStatus(str, ValidationEnum):
+    succeeded = "succeeded"
+    pending = "pending"
+    canceled = "canceled"
+
+
 class DbTables(str, ValidationEnum):
     configs = "configs"
     peak_grids = "peak_grids"
@@ -128,7 +136,7 @@ class DbTables(str, ValidationEnum):
     discount_grids = "discount_grids"
     accounts = "accounts"
     accounts_seq = "accounts_sequence"
-    peak_table = "PeakGridTable"
+    volumes = "volumes"
     config_fk = f"{configs}.id"
     account_fk = f"{accounts_seq}.id"
 
@@ -140,6 +148,7 @@ class DbSequences(str, ValidationEnum):
     discount_grid = "discount_grids_id_seq"
     account = "account_table_id_seq"
     account_id = "account_id_seq"
+    volume = "volume_id_seq"
 
 
 class BaseConfigFields(str, ValidationEnum):
@@ -214,13 +223,9 @@ class LogMsg(str, ValidationEnum):
         "Grids for Config: {config_id} for Account ID: {account_id} deleted."
     )
     unsupported_config_grid = "Unsupported grid type: {grid} and config type: {config}"
-    missing_grids = "No grids provided in request"
-    missing_group = "No account Groups identified for the request"
     account_created = "Account ID: {account_id} for Client IDs: {client_ids} created."
     client_id_exists_in_account = "Client ID: {client_id} already mapped to the accounts: {account_ids}. Remove the client ID from the affected accounts first."
-    client_id_in_account = "One of client IDs mapped to different account"
     account_deleted = "Account ID: {account_id} for Client IDs: {client_ids} created."
     account_not_found = "Account ID: {account_id} not found."
     no_account = "No account mapped to Client ID: {client_id}"
-    account_exists = "Account ID: {account_id}. Exists for Client ID: {client_id}"
     acct_seq_created = "Account ID: {account_id} added to AccountSequenceTable"

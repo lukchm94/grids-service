@@ -23,3 +23,6 @@ def get_cloudwatch_logger(env: str = Env.dev.value) -> Logger:
     console_handler.setFormatter(logFormat)
     logger.addHandler(console_handler)
     return logger
+
+
+logger: Logger = get_cloudwatch_logger()

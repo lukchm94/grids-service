@@ -133,10 +133,6 @@ class Setter:
         self.logger.warn(LogMsg.account_not_found.value.format(account_id=account_id))
         raise AccountNotFoundError(account_id=account_id)
 
-    def _missing_grids(self) -> None:
-        self.logger.warn(LogMsg.missing_grids.value)
-        raise MissingGridsError()
-
     def _create_account_req(self, client_id: int) -> AccountBaseReq:
         return AccountBaseReq(
             client_ids=[client_id],
@@ -276,7 +272,7 @@ class Setter:
         :type client_id: int
         """
         if len(req.grids) == 0:
-            self._missing_grids()
+            raise MissingGridsError()
         if req.group == Groups.group.value:
             raise InvalidGroupError(group=req.group, req_type=Groups.individual.value)
 
@@ -300,7 +296,7 @@ class Setter:
         :type account_id: int
         """
         if len(req.grids) == 0:
-            self._missing_grids()
+            raise MissingGridsError()
         if req.group == Groups.individual.value:
             raise InvalidGroupError(group=req.group, req_type=Groups.group.value)
 

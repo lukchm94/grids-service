@@ -1,5 +1,3 @@
-from logging import Logger
-
 from fastapi import APIRouter, Path, status
 
 from __app_configs import Paths
@@ -7,9 +5,8 @@ from controllers.account import AccountDeleteController
 from controllers.account_impl import Getter, Setter
 from database.main import db_dependency
 from models.account import AccountBaseReq
-from utils.logger import get_cloudwatch_logger
+from utils.logger import logger
 
-logger: Logger = get_cloudwatch_logger()
 router = APIRouter(prefix=Paths.accounts.value, tags=[Paths.account_tag.value])
 
 

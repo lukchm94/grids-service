@@ -23,17 +23,15 @@ class Getter:
         self.db: db_dependency = db
 
     def all_accounts_by_client_id(self, client_id: int) -> AccountResp:
-        account_id = ClientAccountController(
-            client_id, self.db, self.logger
-        ).get_account_id()
+        account = ClientAccountController(client_id, self.db, self.logger).get_account()
 
-        if account_id is None:
+        if account is None:
             self.logger.warn(LogMsg.no_account.value.format(client_id=client_id))
             raise AccountNotFoundError()
 
         account_models: list[AccountTable] = (
             self.db.query(AccountTable)
-            .filter(AccountTable.account_id == account_id)
+            .filter(AccountTable.account_id == account.account_id)
             .filter(AccountTable.deleted_at.is_(None))
             .order_by(desc(AccountTable.valid_to))
             .all()

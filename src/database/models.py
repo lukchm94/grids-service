@@ -1,11 +1,11 @@
-from click import group
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Sequence, String
 
 from __app_configs import DbSequences, DbTables, Deliminator
 from database.main import Base
 from models.account import Account
-from models.configs import BaseConfig, BaseConfigResp
+from models.configs import BaseConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
+from models.volume import AcctVol
 
 
 class ConfigTable(Base):
@@ -163,3 +163,20 @@ class AccountSequenceTable(Base):
         primary_key=True,
         index=True,
     )
+
+
+class VolumesTable(Base):
+    __tablename__ = DbTables.volumes.value
+
+    id = Column(
+        Integer,
+        Sequence(DbSequences.volume.value),
+        primary_key=True,
+        index=True,
+    )
+    account_id = Column(Integer, ForeignKey(DbTables.account_fk.value))
+    date = Column(DateTime)
+    volume = Column(Integer)
+
+    def to_acct_vol(self) -> AcctVol:
+        return AcctVol(account_id=self.account_id, date=self.date, volume=self.volume)
