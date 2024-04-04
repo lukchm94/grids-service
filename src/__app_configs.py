@@ -149,7 +149,7 @@ class DbTables(str, ValidationEnum):
     volumes = "volumes"
     config_fk = f"{configs}.id"
     account_fk = f"{accounts_seq}.id"
-    users = "app_users"
+    users = "users"
 
 
 class DbSequences(str, ValidationEnum):

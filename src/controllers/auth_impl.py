@@ -17,7 +17,6 @@ class Getter:
 
     def get_all_users(self) -> dict:
         users: list[UsersTable] = self.db.query(UsersTable).all()
-        print(users)
         if len(users) == 0:
             raise
         return return_elements([user.to_user() for user in users])
@@ -41,11 +40,7 @@ class Setter:
             last_name=self.user_req.last_name,
             role=self.user_req.role,
             hashed_password=base64.b64encode(self.user_req.password.encode()).decode(),
-            # hashed_password=self.user_req.password,
             deleted_at=None,
         )
-        print(create_user_model.to_user())
-        print(type(create_user_model))
-        print(type(create_user_model.hashed_password))
         self.db.add(create_user_model)
         self.db.commit()

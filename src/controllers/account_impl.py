@@ -46,7 +46,6 @@ class Getter:
 
     def accounts_by_client_id_date(self, dates_req: DatesReq, client_id: int) -> None:
         account = ClientAccountController(client_id, self.db, self.logger).get_account()
-        print(dates_req)
 
         if account is None:
             self.logger.warn(LogMsg.no_account.value.format(client_id=client_id))
