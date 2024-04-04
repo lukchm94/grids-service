@@ -5,6 +5,7 @@ from database.main import Base
 from models.account import Account
 from models.configs import BaseConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
+from models.users import User
 from models.volume import AcctVol
 
 
@@ -180,3 +181,26 @@ class VolumesTable(Base):
 
     def to_acct_vol(self) -> AcctVol:
         return AcctVol(account_id=self.account_id, date=self.date, volume=self.volume)
+
+
+class UsersTable(Base):
+    __tablename__ = DbTables.users.value
+
+    id = Column(
+        Integer, Sequence(DbSequences.users.value), primary_key=True, index=True
+    )
+    email = Column(String(255), unique=True)
+    username = Column(String(255), unique=True)
+    first_name = Column(String(255))
+    last_name = Column(String(255))
+    hashed_password = Column(String(255))
+    deleted_at = Column(DateTime)
+    role = Column(String(255))
+
+    def to_user(self) -> User:
+        return User(
+            email=self.email,
+            username=self.username,
+            password=self.hashed_password,
+            role=self.role,
+        )

@@ -204,3 +204,13 @@ class GridsValuesError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(client_id=client_id, type=type.upper())
+
+
+class PasswordUpdateException(HTTPException):
+    def __init__(
+        self,
+        status_code: Optional[int] = 422,
+        detail: Optional[str] = "New and old passwords are the same",
+        headers: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)

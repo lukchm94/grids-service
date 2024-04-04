@@ -12,6 +12,7 @@ from controllers.account import (
 from database.main import db_dependency
 from database.models import AccountTable
 from models.account import Account, AccountBaseReq, AccountResp
+from models.query_req import DatesReq
 
 
 class Getter:
@@ -33,6 +34,32 @@ class Getter:
             self.db.query(AccountTable)
             .filter(AccountTable.account_id == account.account_id)
             .filter(AccountTable.deleted_at.is_(None))
+            .order_by(desc(AccountTable.valid_to))
+            .all()
+        )
+
+        if len(account_models) == 0:
+            self.logger.warn(LogMsg.no_account.value.format(client_id=client_id))
+            raise AccountNotFoundError()
+
+        return AccountRespController(account_models).format()
+
+    def accounts_by_client_id_date(self, dates_req: DatesReq, client_id: int) -> None:
+        account = ClientAccountController(client_id, self.db, self.logger).get_account()
+        print(dates_req)
+
+        if account is None:
+            self.logger.warn(LogMsg.no_account.value.format(client_id=client_id))
+            raise AccountNotFoundError()
+        account_models: list[AccountTable] = (
+            self.db.query(AccountTable)
+            .filter(AccountTable.account_id == account.account_id)
+            .filter(AccountTable.deleted_at.is_(None))
+            .filter(AccountTable.valid_from <= dates_req.start)
+            .filter(
+                (AccountTable.valid_to > dates_req.end)
+                | (AccountTable.valid_to.is_(None))
+            )
             .order_by(desc(AccountTable.valid_to))
             .all()
         )

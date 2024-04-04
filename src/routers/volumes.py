@@ -13,7 +13,21 @@ router = APIRouter(prefix=Paths.volumes.value, tags=[Paths.volumes_tag.value])
 
 
 @router.get(Paths.dates.value + "{id}", status_code=status.HTTP_200_OK)
-async def get_volume_from_dates(
+async def get_daily_volume_from_dates(
+    db: db_dependency,
+    id: int = Path(gt=0),
+    start: datetime = Query(None),
+    end: datetime = Query(None),
+):
+    dates_req: DatesReq = DateReqController(start, end).format()
+    try:
+        return Getter(logger, db).volumes_from_dates(id, dates_req)
+    except Exception as err:
+        logger.error(err)
+
+
+@router.get(Paths.agg_dates.value + "{id}", status_code=status.HTTP_200_OK)
+async def get_agg_volume_from_dates(
     db: db_dependency,
     id: int = Path(gt=0),
     start: datetime = Query(None),

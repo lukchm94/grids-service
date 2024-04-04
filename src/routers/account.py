@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Path, status
+from datetime import datetime
+
+from fastapi import APIRouter, Path, Query, status
 
 from __app_configs import Paths
 from controllers.account import AccountDeleteController
 from controllers.account_impl import Getter, Setter
+from controllers.query_req import DateReqController
 from database.main import db_dependency
 from models.account import AccountBaseReq
+from models.query_req import DatesReq
 from utils.logger import logger
 
 router = APIRouter(prefix=Paths.accounts.value, tags=[Paths.account_tag.value])
@@ -12,8 +16,24 @@ router = APIRouter(prefix=Paths.accounts.value, tags=[Paths.account_tag.value])
 
 @router.get(Paths.all_acct_by_client.value + "{id}", status_code=status.HTTP_200_OK)
 async def get_all_accounts_by_client_id(db: db_dependency, id: int = Path(gt=0)):
+
     try:
         return Getter(logger, db).all_accounts_by_client_id(id)
+
+    except Exception as err:
+        logger.error(err)
+
+
+@router.get(Paths.acct_by_client_date.value + "{id}", status_code=status.HTTP_200_OK)
+async def get_accounts_by_client_id_date(
+    db: db_dependency,
+    id: int = Path(gt=0),
+    start: datetime = Query(None),
+    end: datetime = Query(None),
+):
+    dates_req: DatesReq = DateReqController(start, end).format()
+    try:
+        return Getter(logger, db).accounts_by_client_id_date(dates_req, id)
 
     except Exception as err:
         logger.error(err)

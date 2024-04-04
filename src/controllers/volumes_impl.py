@@ -28,7 +28,9 @@ class Getter:
     def _get_end_date(self, volumes: list[VolumesTable]) -> datetime:
         return max([vol.to_acct_vol().date for vol in volumes])
 
-    def volumes_from_dates(self, id: int, dates_req: DatesReq) -> AcctVolResp:
+    def volumes_from_dates(
+        self, id: int, dates_req: DatesReq, agg_vol: bool = False
+    ) -> AcctVolResp:
         daily_volumes = (
             self.db.query(VolumesTable)
             .filter(VolumesTable.account_id == id)
@@ -39,11 +41,15 @@ class Getter:
         if len(daily_volumes) == 0:
             raise VolumesNotFoundError(id, dates_req.to_str())
 
-        return AcctVolResp(
-            account_id=id,
-            total_vol=self._get_total_vol(daily_volumes),
-            date_start=self._get_start_date(daily_volumes),
-            date_end=self._get_end_date(daily_volumes),
+        return (
+            AcctVolResp(
+                account_id=id,
+                total_vol=self._get_total_vol(daily_volumes),
+                date_start=self._get_start_date(daily_volumes),
+                date_end=self._get_end_date(daily_volumes),
+            )
+            if agg_vol
+            else [vol.to_acct_vol() for vol in daily_volumes]
         )
 
 

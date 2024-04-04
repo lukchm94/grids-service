@@ -80,14 +80,24 @@ class Paths(str, Enum):
     del_last_config = f"/{delete}/{last}"
     del_all_config = f"/{delete}/{all}"
     account_tag = "accounts"
-    client_id = f"{root}client_id{root}"
+    client_id = f"{root}client_id"
     accounts = f"{root}{account_tag}"
     all_accounts = f"{root}{all}"
-    all_acct_by_client = f"{client_id}{all}"
+    all_acct_by_client = f"{client_id}/{all}"
+    acct_by_client_date = f"{client_id}{dates}"
     last_account = f"{root}{last}"
     delete_account = f"{root}{delete}"
     volumes_tag = "volumes"
+    agg_dates = f"{dates}total/"
     volumes = f"{root}{volumes_tag}"
+    auth_tag = "auth"
+    auth = f"{root}{auth_tag}"
+
+
+class Auth(str, Enum):
+    root = "/"
+    auth_tag = "auth"
+    auth = f"{root}{auth_tag}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -139,6 +149,7 @@ class DbTables(str, ValidationEnum):
     volumes = "volumes"
     config_fk = f"{configs}.id"
     account_fk = f"{accounts_seq}.id"
+    users = "app_users"
 
 
 class DbSequences(str, ValidationEnum):
@@ -149,6 +160,7 @@ class DbSequences(str, ValidationEnum):
     account = "account_table_id_seq"
     account_id = "account_id_seq"
     volume = "volume_id_seq"
+    users = "users_id_seq"
 
 
 class BaseConfigFields(str, ValidationEnum):
