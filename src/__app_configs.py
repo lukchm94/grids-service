@@ -47,7 +47,6 @@ class ValidationEnum(Enum):
         return {member.name: member.value for member in cls}
 
 
-# TODO clean the validation errors
 class AppVars(str, Enum):
     elements = "elements"
     data = "data"
@@ -92,6 +91,7 @@ class Paths(str, Enum):
     volumes = f"{root}{volumes_tag}"
     auth_tag = "auth"
     auth = f"{root}{auth_tag}"
+    token = f"{root}token{root}"
 
 
 class Auth(str, Enum):
@@ -212,6 +212,10 @@ class GridsValidationTypes(str, ValidationEnum):
     vol = "volume buckets"
     dist = "distance buckets"
     totals = "combined grids"
+
+
+class TokenTypes(str, ValidationEnum):
+    bearer = "bearer"
 
 
 class LoggerConfig(str, ValidationEnum):

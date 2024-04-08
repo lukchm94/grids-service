@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, root_validator
 
 from __exceptions import PasswordUpdateException
+from models.token import Token
 
 
 class User(BaseModel):
@@ -8,6 +9,8 @@ class User(BaseModel):
     email: str = Field(min_length=3, include="@")
     password: str = Field(min_length=3, max_length=100)
     role: str = Field(min_length=3, max_length=100)
+
+    # TODO add email validations with re
 
 
 class UserReq(User):
@@ -28,3 +31,12 @@ class UserVerification(BaseModel):
             raise PasswordUpdateException()
 
         return values
+
+
+class UserWithToken(Token):
+    user: User
+
+
+class CurrentUser(BaseModel):
+    username: str = Field(min_length=3, max_length=100)
+    role: str = Field(min_length=3, max_length=100)

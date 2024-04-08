@@ -45,6 +45,13 @@ class InvalidConfigError(Exception):
         )
 
 
+class InvalidTokenType(Exception):
+    def __init__(self, type: str, allowed_types: str) -> None:
+        super().__init__(
+            f"Invalid token type: {type} for allowed types: {allowed_types}"
+        )
+
+
 class InvalidStatusError(Exception):
     def __init__(self, status: str, id: int = None) -> None:
         super().__init__(f"Received invalid status: {status} for Delivery ID: {id}")
@@ -214,3 +221,27 @@ class PasswordUpdateException(HTTPException):
         headers: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(status_code, detail, headers)
+
+
+class UserNotFoundError(HTTPException):
+    def __init__(
+        self,
+        username: str = None,
+        status_code: Optional[int] = 404,
+        detail: Any = "No user found for user ID: {username}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(username=username)
+
+
+class AuthenticationError(HTTPException):
+    def __init__(
+        self,
+        username: str = None,
+        status_code: Optional[int] = 401,
+        detail: Any = "Invalid Password for the user ID: {username}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(username=username)

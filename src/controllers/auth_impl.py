@@ -1,10 +1,16 @@
 import base64
 from logging import Logger
+from typing import Annotated
+
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordRequestForm
 
 from __app_configs import return_elements
+from __exceptions import AuthenticationError, UserNotFoundError
+from auth.main import Token
 from database.main import db_dependency
 from database.models import UsersTable
-from models.users import UserReq
+from models.users import User, UserReq, UserWithToken
 
 
 class Getter:
@@ -18,8 +24,30 @@ class Getter:
     def get_all_users(self) -> dict:
         users: list[UsersTable] = self.db.query(UsersTable).all()
         if len(users) == 0:
-            raise
+            raise UserNotFoundError()
         return return_elements([user.to_user() for user in users])
+
+    def get_user(self, username: str, password: str) -> User:
+        user: UsersTable = (
+            self.db.query(UsersTable).filter(UsersTable.username == username).first()
+        )
+        if user is None:
+            raise UserNotFoundError(username)
+        if user.hashed_password != base64.b64encode(password.encode()).decode():
+            raise AuthenticationError(username)
+
+        return user.to_user()
+
+    def generate_token(
+        self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    ) -> UserWithToken:
+        user: User = self.get_user(
+            username=form_data.username, password=form_data.password
+        )
+        if user is None:
+            raise UserNotFoundError(form_data.username)
+
+        return Token(user).generate_token()
 
 
 class Setter:
