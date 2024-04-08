@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 
 # TODO add the HTTPExceptions to the regular Exceptions
@@ -227,7 +227,7 @@ class UserNotFoundError(HTTPException):
     def __init__(
         self,
         username: str = None,
-        status_code: Optional[int] = 404,
+        status_code: Optional[int] = status.HTTP_404_NOT_FOUND,
         detail: Any = "No user found for user ID: {username}",
         headers: Dict[str, str] | None = None,
     ) -> None:
@@ -245,3 +245,23 @@ class AuthenticationError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(username=username)
+
+
+class ExpiredTokenError(HTTPException):
+    def __init__(
+        self,
+        status_code: Optional[int] = status.HTTP_401_UNAUTHORIZED,
+        detail: Any = "Token has expired",
+        headers: Dict[str, str] | None = {"WWW-Authenticate": "Bearer"},
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+
+
+class MissingTokenError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = status.HTTP_401_UNAUTHORIZED,
+        detail: Any = "Missing bearer token",
+        headers: Dict[str, str] | None = {"WWW-Authenticate": "Bearer"},
+    ) -> None:
+        super().__init__(status_code, detail, headers)

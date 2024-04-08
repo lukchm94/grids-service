@@ -3,6 +3,8 @@ from datetime import datetime
 from fastapi import APIRouter, Path, Query, status
 
 from __app_configs import Paths
+from __exceptions import AuthenticationError
+from auth.main import user_dependency
 from controllers.account import AccountDeleteController
 from controllers.account_impl import Getter, Setter
 from controllers.query_req import DateReqController
@@ -15,8 +17,11 @@ router = APIRouter(prefix=Paths.accounts.value, tags=[Paths.account_tag.value])
 
 
 @router.get(Paths.all_acct_by_client.value + "{id}", status_code=status.HTTP_200_OK)
-async def get_all_accounts_by_client_id(db: db_dependency, id: int = Path(gt=0)):
-
+async def get_all_accounts_by_client_id(
+    db: db_dependency, user: user_dependency, id: int = Path(gt=0)
+):
+    if user is None:
+        raise AuthenticationError(user)
     try:
         return Getter(logger, db).all_accounts_by_client_id(id)
 
@@ -27,10 +32,13 @@ async def get_all_accounts_by_client_id(db: db_dependency, id: int = Path(gt=0))
 @router.get(Paths.acct_by_client_date.value + "{id}", status_code=status.HTTP_200_OK)
 async def get_accounts_by_client_id_date(
     db: db_dependency,
+    user: user_dependency,
     id: int = Path(gt=0),
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
+    if user is None:
+        raise AuthenticationError(user)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).accounts_by_client_id_date(dates_req, id)
@@ -40,7 +48,11 @@ async def get_accounts_by_client_id_date(
 
 
 @router.get(Paths.all_accounts.value + "{id}", status_code=status.HTTP_200_OK)
-async def get_all_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
+async def get_all_accounts_by_id(
+    db: db_dependency, user: user_dependency, id: int = Path(gt=0)
+):
+    if user is None:
+        raise AuthenticationError(user)
     try:
         return Getter(logger, db).all_accounts_by_id(id)
 
@@ -49,7 +61,11 @@ async def get_all_accounts_by_id(db: db_dependency, id: int = Path(gt=0)):
 
 
 @router.post(Paths.root.value, status_code=status.HTTP_201_CREATED)
-async def create_account(db: db_dependency, account_req: AccountBaseReq):
+async def create_account(
+    db: db_dependency, user: user_dependency, account_req: AccountBaseReq
+):
+    if user is None:
+        raise AuthenticationError(user)
     try:
         Setter(logger, db, account_req).create_account()
 
@@ -58,7 +74,11 @@ async def create_account(db: db_dependency, account_req: AccountBaseReq):
 
 
 @router.put(Paths.delete_account.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_account(db: db_dependency, id: int = Path(gt=0)):
+async def delete_account(
+    db: db_dependency, user: user_dependency, id: int = Path(gt=0)
+):
+    if user is None:
+        raise AuthenticationError(user)
     try:
         AccountDeleteController(id, db, logger).delete()
 

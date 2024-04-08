@@ -218,6 +218,23 @@ class TokenTypes(str, ValidationEnum):
     bearer = "bearer"
 
 
+class TokenConfigs(ValidationEnum):
+    algorithm: str = "HS256"
+    default_expiration: int = 30
+
+
+class Permissions(list[str], ValidationEnum):
+    read = ["read"]
+    write = ["write"]
+    all = ["read", "write"]
+
+
+class Roles(str, ValidationEnum):
+    admin = "admin"
+    service = "service"
+    user = "user"
+
+
 class LoggerConfig(str, ValidationEnum):
     log_name = "GridsService"
     default_level = "INFO"

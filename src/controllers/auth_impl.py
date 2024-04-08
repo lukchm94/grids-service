@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from __app_configs import return_elements
+from __app_configs import Deliminator, return_elements
 from __exceptions import AuthenticationError, UserNotFoundError
 from auth.main import Token
 from database.main import db_dependency
@@ -28,14 +28,11 @@ class Getter:
         return return_elements([user.to_user() for user in users])
 
     def get_user(self, username: str, password: str) -> User:
-        user: UsersTable = (
-            self.db.query(UsersTable).filter(UsersTable.username == username).first()
-        )
+        user = self.db.query(UsersTable).filter(UsersTable.username == username).first()
         if user is None:
             raise UserNotFoundError(username)
         if user.hashed_password != base64.b64encode(password.encode()).decode():
             raise AuthenticationError(username)
-
         return user.to_user()
 
     def generate_token(
@@ -60,6 +57,11 @@ class Setter:
         self.db: db_dependency = db
         self.user_req: UserReq = user_req
 
+    def _permissions_to_str(self) -> str:
+        return Deliminator.comma.value.join(
+            permission for permission in self.user_req.permissions
+        )
+
     def create_user(self) -> None:
         create_user_model: UsersTable = UsersTable(
             email=self.user_req.email,
@@ -68,6 +70,7 @@ class Setter:
             last_name=self.user_req.last_name,
             role=self.user_req.role,
             hashed_password=base64.b64encode(self.user_req.password.encode()).decode(),
+            permissions=self._permissions_to_str(),
             deleted_at=None,
         )
         self.db.add(create_user_model)

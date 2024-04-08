@@ -196,11 +196,16 @@ class UsersTable(Base):
     hashed_password = Column(String(255))
     deleted_at = Column(DateTime)
     role = Column(String(255))
+    permissions = Column(String(255))
 
     def to_user(self) -> User:
+        permissions: str = self.permissions
         return User(
             email=self.email,
             username=self.username,
             password=self.hashed_password,
             role=self.role,
+            permissions=[
+                permission for permission in permissions.split(Deliminator.comma.value)
+            ],
         )
