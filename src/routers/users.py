@@ -31,6 +31,7 @@ async def create_users(
         logger.error(err)
 
 
+# TODO add endpoints to change password and update permissions
 # @router.put(Paths.root.value)
 # async def change_password():
 #     pass
