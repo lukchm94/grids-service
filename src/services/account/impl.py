@@ -4,15 +4,15 @@ from sqlalchemy import desc
 
 from __app_configs import LogMsg
 from __exceptions import AccountNotFoundError, ClientIdMappedToAccountError
-from controllers.account import (
-    AccountReqController,
-    AccountRespController,
-    ClientAccountController,
-)
 from database.main import db_dependency
 from database.models import AccountTable
 from models.account import Account, AccountBaseReq, AccountResp
 from models.query_req import DatesReq
+from services.account.service import (
+    AccountReqController,
+    AccountRespController,
+    ClientAccountController,
+)
 
 
 class Getter:

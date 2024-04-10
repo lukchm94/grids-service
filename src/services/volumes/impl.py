@@ -1,10 +1,7 @@
 from datetime import datetime
 from logging import Logger
 
-from fastapi import HTTPException
-
-from __app_configs import LogMsg
-from __exceptions import AccountNotFoundError, VolumesNotFoundError
+from __exceptions import VolumesNotFoundError
 from database.main import db_dependency
 from database.models import VolumesTable
 from models.query_req import DatesReq

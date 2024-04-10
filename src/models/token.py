@@ -9,7 +9,7 @@ class Token(BaseModel):
     token_type: str = Field(default=TokenTypes.bearer.value)
 
     @root_validator(pre=True)
-    def validate_passwords(cls, values: dict) -> dict:
+    def validate_token(cls, values: dict) -> dict:
         token_type: str = values.get("token_type")
 
         if token_type not in TokenTypes.list():

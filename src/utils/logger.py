@@ -10,7 +10,7 @@ from __app_configs import Env, LoggerConfig
 def get_cloudwatch_logger(env: str = Env.dev.value) -> Logger:
     logger = logging.getLogger(LoggerConfig.log_name.value)
     logger.setLevel(
-        LoggerConfig.default_level.value
+        LoggerConfig.default.value
         if env == Env.prod.value
         else LoggerConfig.debug.value
     )

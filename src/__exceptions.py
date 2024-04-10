@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException, status
 
 
-# TODO add the HTTPExceptions to the regular Exceptions
 class InvalidDayError(Exception):
     def __init__(self, day: int) -> None:
         super().__init__(f"Invalid day: {day}. Day must be between 0 and 6")
@@ -263,5 +262,28 @@ class MissingTokenError(HTTPException):
         status_code: int = status.HTTP_401_UNAUTHORIZED,
         detail: Any = "Missing bearer token",
         headers: Dict[str, str] | None = {"WWW-Authenticate": "Bearer"},
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+
+
+class PermEndpointError(HTTPException):
+    def __init__(
+        self,
+        perm: str,
+        endpoint: str,
+        status_code: int = status.HTTP_403_FORBIDDEN,
+        detail: Any = "Access denied for the endpoint: {endpoint} for the user permission: {perm}",
+        headers: Dict[str, str] | None = {"WWW-Authenticate": "Permission"},
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(perm=perm, endpoint=endpoint)
+
+
+class InvalidEmailError(HTTPException):
+    def __init__(
+        self,
+        status_code: int = status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail: Any = "Invalid email address received",
+        headers: Dict[str, str] | None = None,
     ) -> None:
         super().__init__(status_code, detail, headers)

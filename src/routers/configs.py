@@ -1,16 +1,16 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Path, Query, status
+from fastapi import APIRouter, Path, Query, Request, status
 
 from __app_configs import Paths
-from __exceptions import AuthenticationError
+from auth.check_access import authorize
 from auth.main import user_dependency
-from controllers.config_impl import Getter, Setter
-from controllers.query_req import DateReqController
 from database.main import db_dependency
 from models.configs import BaseConfig, Config
 from models.query_req import DatesReq
+from services.configs.impl import Getter, Setter
 from utils.logger import logger
+from utils.query_req import DateReqController
 
 router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
 
@@ -19,12 +19,12 @@ router = APIRouter(prefix=Paths.configs.value, tags=[Paths.config_tag.value])
 async def get_config_by_client_date(
     db: db_dependency,
     user: user_dependency,
+    req: Request,
     client_id: int = Path(gt=0),
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.dates.value)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).config_by_client_id_date(dates_req, client_id)
@@ -34,10 +34,9 @@ async def get_config_by_client_date(
 
 @router.get(Paths.all_config.value + "{client_id}", status_code=status.HTTP_200_OK)
 async def get_configs_by_client_id(
-    db: db_dependency, user: user_dependency, client_id: int = Path(gt=0)
+    db: db_dependency, user: user_dependency, req: Request, client_id: int = Path(gt=0)
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.all_config.value)
     try:
         return Getter(logger, db).all_config_by_client_id(client_id)
     except Exception as err:
@@ -46,46 +45,54 @@ async def get_configs_by_client_id(
 
 @router.post(Paths.ind.value + "{id}", status_code=status.HTTP_201_CREATED)
 async def create_ind_config(
-    db: db_dependency, user: user_dependency, req: Config, id: int = Path(gt=0)
+    db: db_dependency,
+    user: user_dependency,
+    config_req: Config,
+    req: Request,
+    id: int = Path(gt=0),
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.ind.value)
     try:
-        Setter(logger, db).create_ind_config(req, id)
+        Setter(logger, db).create_ind_config(config_req, id)
     except Exception as err:
         logger.error(err)
 
 
 @router.post(Paths.group.value + "{id}", status_code=status.HTTP_201_CREATED)
 async def create_group_config(
-    db: db_dependency, user: user_dependency, req: Config, id: int = Path(gt=0)
+    db: db_dependency,
+    user: user_dependency,
+    config_req: Config,
+    req: Request,
+    id: int = Path(gt=0),
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.group.value)
     try:
-        Setter(logger, db).create_group_config(req, id)
+        Setter(logger, db).create_group_config(config_req, id)
     except Exception as err:
         logger.error(err)
 
 
 @router.put(Paths.root.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_last_config(
-    db: db_dependency, user: user_dependency, req: BaseConfig, id: int = Path(gt=0)
+    db: db_dependency,
+    user: user_dependency,
+    config_req: BaseConfig,
+    req: Request,
+    id: int = Path(gt=0),
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.root.value)
     try:
-        Setter(logger, db).update_last_config(req, id)
+        Setter(logger, db).update_last_config(config_req, id)
     except Exception as err:
         logger.error(err)
 
 
 @router.put(Paths.del_all_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_config(
-    db: db_dependency, user: user_dependency, id: int = Path(gt=0)
+    db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.del_all_config.value)
     try:
         Setter(logger, db).delete_all(id)
     except Exception as err:
@@ -96,10 +103,9 @@ async def delete_all_config(
     Paths.del_last_config.value + "{id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_last_config(
-    db: db_dependency, user: user_dependency, id: int = Path(gt=0)
+    db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    if user is None:
-        raise AuthenticationError(user)
+    authorize(user, req.method, Paths.configs.value + Paths.del_last_config.value)
     try:
         Setter(logger, db).delete_last(id)
     except Exception as err:

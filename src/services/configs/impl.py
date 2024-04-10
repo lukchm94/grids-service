@@ -10,19 +10,19 @@ from __exceptions import (
     InvalidGroupError,
     MissingGridsError,
 )
-from controllers import account_impl
-from controllers.account import ClientAccountController
-from controllers.configs import (
-    ConfigModelController,
-    ConfigReqController,
-    ConfigRespController,
-)
-from controllers.grids import GridReqController
 from database.main import db_dependency
 from database.models import ConfigTable
 from models.account import Account, AccountBaseReq
 from models.configs import BaseConfig, Config, ConfigReq, ConfigResp
 from models.query_req import DatesReq
+from services.account import impl
+from services.account.service import ClientAccountController
+from services.configs.service import (
+    ConfigModelController,
+    ConfigReqController,
+    ConfigRespController,
+)
+from services.grids.service import GridReqController
 
 
 class Getter:
@@ -203,7 +203,7 @@ class Setter:
 
         if account is None:
             account_req = self._create_account_req(client_id)
-            account: Account = account_impl.Setter(
+            account: Account = impl.Setter(
                 logger=self.logger, db=self.db, account_req=account_req
             ).create_account(return_account=True)
         req_controller: ConfigReqController = ConfigReqController(req)

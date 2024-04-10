@@ -68,23 +68,15 @@ class Paths(str, Enum):
     delete = "delete"
     dates = "/dates/"
     config_tag = "configs"
-    grids_tag = "grids"
-    grids = f"{root}{grids_tag}"
     configs = f"{root}{config_tag}"
-    volume = f"{root}volume"
-    peak = f"{root}peak"
-    discount = f"{root}discount"
-    last_config = f"/{last}"
     all_config = f"/{all}"
     del_last_config = f"/{delete}/{last}"
     del_all_config = f"/{delete}/{all}"
     account_tag = "accounts"
     client_id = f"{root}client_id"
-    accounts = f"{root}{account_tag}"
-    all_accounts = f"{root}{all}"
+    acct = f"{root}{account_tag}"
     all_acct_by_client = f"{client_id}/{all}"
     acct_by_client_date = f"{client_id}{dates}"
-    last_account = f"{root}{last}"
     delete_account = f"{root}{delete}"
     volumes_tag = "volumes"
     agg_dates = f"{dates}total/"
@@ -92,12 +84,8 @@ class Paths(str, Enum):
     auth_tag = "auth"
     auth = f"{root}{auth_tag}"
     token = f"{root}token{root}"
-
-
-class Auth(str, Enum):
-    root = "/"
-    auth_tag = "auth"
-    auth = f"{root}{auth_tag}"
+    user_tag = "user"
+    user = f"{root}{user_tag}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -223,10 +211,9 @@ class TokenConfigs(ValidationEnum):
     default_expiration: int = 30
 
 
-class Permissions(list[str], ValidationEnum):
-    read = ["read"]
-    write = ["write"]
-    all = ["read", "write"]
+class Permissions(str, ValidationEnum):
+    read = "read"
+    write = "write"
 
 
 class Roles(str, ValidationEnum):
@@ -237,7 +224,7 @@ class Roles(str, ValidationEnum):
 
 class LoggerConfig(str, ValidationEnum):
     log_name = "GridsService"
-    default_level = "INFO"
+    default = "INFO"
     debug = "DEBUG"
     region_name = "eu-west-1"
     aws_group_name = "growth-service"

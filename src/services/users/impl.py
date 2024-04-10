@@ -1,16 +1,11 @@
 import base64
 from logging import Logger
-from typing import Annotated
-
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordRequestForm
 
 from __app_configs import Deliminator, return_elements
 from __exceptions import AuthenticationError, UserNotFoundError
-from auth.main import Token
 from database.main import db_dependency
 from database.models import UsersTable
-from models.users import User, UserReq, UserWithToken
+from models.users import User, UserReq
 
 
 class Getter:
@@ -34,17 +29,6 @@ class Getter:
         if user.hashed_password != base64.b64encode(password.encode()).decode():
             raise AuthenticationError(username)
         return user.to_user()
-
-    def generate_token(
-        self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-    ) -> UserWithToken:
-        user: User = self.get_user(
-            username=form_data.username, password=form_data.password
-        )
-        if user is None:
-            raise UserNotFoundError(form_data.username)
-
-        return Token(user).generate_token()
 
 
 class Setter:
