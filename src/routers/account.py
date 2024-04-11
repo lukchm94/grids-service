@@ -37,7 +37,7 @@ async def get_accounts_by_client_id_date(
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
-    authorize(user, req.method, Paths.acct.value + Paths.acct_by_client_date.value)
+    authorize(user, db, req.method, Paths.acct.value + Paths.acct_by_client_date.value)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).accounts_by_client_id_date(dates_req, id)
@@ -50,7 +50,7 @@ async def get_accounts_by_client_id_date(
 async def create_account(
     db: db_dependency, user: user_dependency, account_req: AccountBaseReq, req: Request
 ):
-    authorize(user, req.method, Paths.acct.value + Paths.root.value)
+    authorize(user, db, req.method, Paths.acct.value + Paths.root.value)
     try:
         Setter(logger, db, account_req).create_account()
 
@@ -62,7 +62,7 @@ async def create_account(
 async def delete_account(
     db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    authorize(user, req.method, Paths.acct.value + Paths.delete_account.value)
+    authorize(user, db, req.method, Paths.acct.value + Paths.delete_account.value)
     try:
         AccountDeleteController(id, db, logger).delete()
 

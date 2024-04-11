@@ -23,7 +23,7 @@ async def get_daily_volume_from_dates(
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
-    authorize(user, req.method, Paths.volumes.value + Paths.dates.value)
+    authorize(user, db, req.method, Paths.volumes.value + Paths.dates.value)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).volumes_from_dates(id, dates_req)
@@ -40,7 +40,7 @@ async def get_agg_volume_from_dates(
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
-    authorize(user, req.method, Paths.volumes.value + Paths.agg_dates.value)
+    authorize(user, db, req.method, Paths.volumes.value + Paths.agg_dates.value)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).volumes_from_dates(id, dates_req)

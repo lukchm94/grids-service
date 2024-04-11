@@ -13,8 +13,8 @@ router = APIRouter(prefix=Paths.user.value, tags=[Paths.user_tag.value])
 
 @router.get(Paths.root.value, status_code=status.HTTP_200_OK)
 async def get_users(db: db_dependency, user: user_dependency, req: Request) -> dict:
+    authorize(user, db, req.method, Paths.user.value + Paths.root.value)
     try:
-        authorize(user, req.method, Paths.user.value + Paths.root.value)
         return Getter(logger, db).get_all_users()
     except Exception as err:
         logger.error(err)
@@ -24,8 +24,8 @@ async def get_users(db: db_dependency, user: user_dependency, req: Request) -> d
 async def create_users(
     db: db_dependency, user_req: UserReq, user: user_dependency, req: Request
 ) -> None:
+    authorize(user, db, req.method, Paths.user.value + Paths.root.value)
     try:
-        authorize(user, req.method, Paths.user.value + Paths.root.value)
         Setter(logger, db, user_req).create_user()
     except Exception as err:
         logger.error(err)

@@ -49,7 +49,6 @@ class Setter:
             self.db.add(model)
 
     def create_perm(self) -> None:
-        print(self)
         self._upload_perm()
         self.db.commit()
         self.logger.info(

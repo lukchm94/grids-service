@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Path, status
+from fastapi import APIRouter, Path, Request, status
 
-from __app_configs import Paths, Permissions
+from __app_configs import Paths
 from auth.check_access import authorize
 from auth.main import user_dependency
 from database.main import db_dependency
@@ -13,8 +13,9 @@ router = APIRouter(prefix=Paths.permissions.value, tags=[Paths.permissions_tag.v
 
 @router.get(Paths.root.value + "{perm}", status_code=status.HTTP_200_OK)
 async def get_permissions_by_name(
-    user: user_dependency, db: db_dependency, perm: str = Path
+    user: user_dependency, db: db_dependency, req: Request, perm: str = Path
 ) -> None:
+    authorize(user, db, req.method, Paths.permissions.value + Paths.root.value)
     try:
         return Getter(logger, db).get_perm_by_name(perm)
     except Exception as err:
@@ -23,8 +24,9 @@ async def get_permissions_by_name(
 
 @router.post(Paths.root.value, status_code=status.HTTP_201_CREATED)
 async def create_permission(
-    user: user_dependency, db: db_dependency, perm_req: PermissionReq
+    user: user_dependency, db: db_dependency, perm_req: PermissionReq, req: Request
 ) -> None:
+    authorize(user, db, req.method, Paths.permissions.value + Paths.root.value)
     try:
         Setter(logger, db, perm_req).create_perm()
     except Exception as err:

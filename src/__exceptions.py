@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, status
+from typing_extensions import Annotated, Doc
 
 
 class InvalidDayError(Exception):
@@ -277,6 +278,19 @@ class PermEndpointError(HTTPException):
     ) -> None:
         super().__init__(status_code, detail, headers)
         self.detail = self.detail.format(perm=perm, endpoint=endpoint)
+
+
+class MissingEndpointPermError(HTTPException):
+    def __init__(
+        self,
+        endpoint: str,
+        method: str,
+        status_code: int = status.HTTP_404_NOT_FOUND,
+        detail: Any = "No permission mapped to endpoint: {endpoint} and method: {method}",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(endpoint=endpoint, method=method)
 
 
 class InvalidEmailError(HTTPException):

@@ -201,8 +201,6 @@ class UsersTable(Base):
 
     def to_user(self) -> User:
         permissions: str = self.permissions
-        print(self.permissions)
-        print(permissions.split(Deliminator.comma.value))
         return User(
             email=self.email,
             username=self.username,
@@ -222,7 +220,7 @@ class PermissionTable(Base):
     )
     method = Column(String(255))
     permission = Column(String(255))
-    endpoint = Column(String(255))
+    endpoint = Column(String(255), unique=True)
 
     def to_permission(self) -> Permission:
         return Permission(

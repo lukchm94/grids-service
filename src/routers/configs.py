@@ -24,7 +24,7 @@ async def get_config_by_client_date(
     start: datetime = Query(None),
     end: datetime = Query(None),
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.dates.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.dates.value)
     dates_req: DatesReq = DateReqController(start, end).format()
     try:
         return Getter(logger, db).config_by_client_id_date(dates_req, client_id)
@@ -36,7 +36,7 @@ async def get_config_by_client_date(
 async def get_configs_by_client_id(
     db: db_dependency, user: user_dependency, req: Request, client_id: int = Path(gt=0)
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.all_config.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.all_config.value)
     try:
         return Getter(logger, db).all_config_by_client_id(client_id)
     except Exception as err:
@@ -51,7 +51,7 @@ async def create_ind_config(
     req: Request,
     id: int = Path(gt=0),
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.ind.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.ind.value)
     try:
         Setter(logger, db).create_ind_config(config_req, id)
     except Exception as err:
@@ -66,7 +66,7 @@ async def create_group_config(
     req: Request,
     id: int = Path(gt=0),
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.group.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.group.value)
     try:
         Setter(logger, db).create_group_config(config_req, id)
     except Exception as err:
@@ -81,7 +81,7 @@ async def update_last_config(
     req: Request,
     id: int = Path(gt=0),
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.root.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.root.value)
     try:
         Setter(logger, db).update_last_config(config_req, id)
     except Exception as err:
@@ -92,7 +92,7 @@ async def update_last_config(
 async def delete_all_config(
     db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.del_all_config.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.del_all_config.value)
     try:
         Setter(logger, db).delete_all(id)
     except Exception as err:
@@ -105,7 +105,7 @@ async def delete_all_config(
 async def delete_last_config(
     db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    authorize(user, req.method, Paths.configs.value + Paths.del_last_config.value)
+    authorize(user, db, req.method, Paths.configs.value + Paths.del_last_config.value)
     try:
         Setter(logger, db).delete_last(id)
     except Exception as err:

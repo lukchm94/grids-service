@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field, root_validator
 
-from __app_configs import Paths, Permissions
+from __app_configs import HttpMethods, Paths, Permissions
 from __exceptions import InvalidInputError
-from auth.permissions import HttpMethods
 
 
 class Route(BaseModel):
@@ -13,13 +12,13 @@ class Route(BaseModel):
     def validate(cls, values: dict) -> dict:
         method: str = values.get("method")
         endpoint: str = values.get("endpoint")
+
         if method not in HttpMethods.list():
-            raise ValueError("Invalid HTTP method")
-        if not (
-            endpoint.startswith(Paths.root.value)
-            # and endpoint.endswith(Paths.root.value)
-        ):
-            raise ValueError("Invalid endpoint path")
+            raise InvalidInputError(method)
+
+        if not endpoint.startswith(Paths.root.value):
+            raise InvalidInputError(endpoint)
+
         return values
 
 
@@ -39,11 +38,10 @@ class Permission(BaseModel):
 
         if permission not in Permissions.list():
             raise InvalidInputError(permission)
-        if not (
-            endpoint.startswith(Paths.root.value)
-            # and endpoint.endswith(Paths.root.value)
-        ):
+
+        if not endpoint.startswith(Paths.root.value):
             raise InvalidInputError(method)
+
         return values
 
 
@@ -59,8 +57,6 @@ class PermissionReq(BaseModel):
         endpoints: str = values.get("endpoints")
 
         if method not in HttpMethods.list():
-            print(method)
-            print(HttpMethods.list())
             raise InvalidInputError(method)
 
         if permission not in Permissions.list():
@@ -71,9 +67,7 @@ class PermissionReq(BaseModel):
             # I found sth like this from server.main import app print(app.routes)
             # but possibly there is a nicer way to store the endpoints in a
             # json file or sth like that directly from server/main.py
-            if not (
-                endpoint.startswith(Paths.root.value)
-                # and endpoint.endswith(Paths.root.value)
-            ):
+            if not endpoint.startswith(Paths.root.value):
                 raise InvalidInputError(endpoint)
+
         return values
