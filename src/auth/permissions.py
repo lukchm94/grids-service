@@ -1,6 +1,7 @@
-from pydantic import BaseModel, model_validator
-
-from __app_configs import Paths, Permissions, ValidationEnum
+from __app_configs import HttpMethods, Paths, Permissions
+from database.main import db_dependency
+from database.models import PermissionTable
+from models.permissions import Route
 
 # TODO update the permissions of the remaining endpoints
 # Data permission mapped as permission: [list of endpoints]
@@ -10,38 +11,25 @@ DEL_PERM: dict = {}
 PUT_PERM: dict = {}
 
 
-class HttpMethods(str, ValidationEnum):
-    get = "GET"
-    post = "POST"
-    delete = "DELETE"
-    put = "PUT"
-
-
-class Route(BaseModel):
-    method: str
-    endpoint: str
-
-    @model_validator(mode="before")
-    def validate(cls, values: dict) -> dict:
-        method: str = values.get("method")
-        endpoint: str = values.get("endpoint")
-        if method not in HttpMethods.list():
-            raise ValueError("Invalid HTTP method")
-        if not (
-            endpoint.startswith(Paths.root.value)
-            and endpoint.endswith(Paths.root.value)
-        ):
-            raise ValueError("Invalid endpoint path")
-        return values
-
-
 class Access:
     route: Route
     user_perm: list[str]
+    db: db_dependency
 
-    def __init__(self, user_perm: list[str], endpoint: str, method: str) -> None:
-        self.route: Route = Route(method=method, endpoint=endpoint)
+    def __init__(
+        self, db: db_dependency, user_perm: list[str], endpoint: str, method: str
+    ) -> None:
+        self.db: db_dependency = db
         self.user_perm: list[str] = user_perm
+        self.route: Route = Route(method=method, endpoint=endpoint)
+
+    def _allowed_endpoints(self) -> None:
+        perms = (
+            self.db.query(PermissionTable)
+            .filter(PermissionTable.method == self.route.method)
+            .filter(PermissionTable.permission.in_(self.user_perm))
+        )
+        # TODO pick up here
 
     def _get_endpoints(self) -> dict:
         allowed_endpoints: dict = {}

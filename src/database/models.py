@@ -5,6 +5,7 @@ from database.main import Base
 from models.account import Account
 from models.configs import BaseConfigResp
 from models.grids import DiscountGrid, PeakOffPeakGrid, VolumeGrid
+from models.permissions import Permission
 from models.users import User
 from models.volume import AcctVol
 
@@ -200,6 +201,8 @@ class UsersTable(Base):
 
     def to_user(self) -> User:
         permissions: str = self.permissions
+        print(self.permissions)
+        print(permissions.split(Deliminator.comma.value))
         return User(
             email=self.email,
             username=self.username,
@@ -208,4 +211,20 @@ class UsersTable(Base):
             permissions=[
                 permission for permission in permissions.split(Deliminator.comma.value)
             ],
+        )
+
+
+class PermissionTable(Base):
+    __tablename__ = DbTables.permissions.value
+
+    id = Column(
+        Integer, Sequence(DbSequences.permissions.value), primary_key=True, index=True
+    )
+    method = Column(String(255))
+    permission = Column(String(255))
+    endpoint = Column(String(255))
+
+    def to_permission(self) -> Permission:
+        return Permission(
+            method=self.method, permission=self.permission, endpoint=self.endpoint
         )

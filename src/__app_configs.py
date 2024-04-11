@@ -8,7 +8,7 @@ def return_elements(elements: list) -> dict:
 
 
 class Deliminator(str, Enum):
-    comma = ", "
+    comma = ","
     space = " "
     dash = "-"
     vertical = "|"
@@ -86,6 +86,8 @@ class Paths(str, Enum):
     token = f"{root}token{root}"
     user_tag = "user"
     user = f"{root}{user_tag}"
+    permissions_tag = "permissions"
+    permissions = f"{root}{permissions_tag}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -138,6 +140,7 @@ class DbTables(str, ValidationEnum):
     config_fk = f"{configs}.id"
     account_fk = f"{accounts_seq}.id"
     users = "users"
+    permissions = "permissions"
 
 
 class DbSequences(str, ValidationEnum):
@@ -149,6 +152,7 @@ class DbSequences(str, ValidationEnum):
     account_id = "account_id_seq"
     volume = "volume_id_seq"
     users = "users_id_seq"
+    permissions = "permissions_id_seq"
 
 
 class BaseConfigFields(str, ValidationEnum):
@@ -213,7 +217,18 @@ class TokenConfigs(ValidationEnum):
 
 class Permissions(str, ValidationEnum):
     read = "read"
+    read_admin = "read_admin"
     write = "write"
+    write_admin = "write_admin"
+    write_acct = "write_account"
+    write_config = "write_config"
+
+
+class HttpMethods(str, ValidationEnum):
+    get = "GET"
+    post = "POST"
+    delete = "DELETE"
+    put = "PUT"
 
 
 class Roles(str, ValidationEnum):
@@ -249,3 +264,4 @@ class LogMsg(str, ValidationEnum):
     account_not_found = "Account ID: {account_id} not found."
     no_account = "No account mapped to Client ID: {client_id}"
     acct_seq_created = "Account ID: {account_id} added to AccountSequenceTable"
+    created_perm = "Created permissions for: {perm} for following endpoint: {endpoints}"
