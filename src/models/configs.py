@@ -67,7 +67,7 @@ class BaseConfig(BaseModel):
         package_size_option = values.get(BaseConfigFields.package_size_option.value)
         for pkg in package_size_option:
             if pkg not in PackageSizes.list():
-                raise InvalidInputError(value=package_size_option)
+                raise InvalidInputError(value=pkg)
 
         transport_option = values.get(BaseConfigFields.transport_option.value)
         for transport_type in transport_option:

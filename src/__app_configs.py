@@ -77,7 +77,7 @@ class Paths(str, Enum):
     acct = f"{root}{account_tag}"
     all_acct_by_client = f"{client_id}/{all}"
     acct_by_client_date = f"{client_id}{dates}"
-    delete_account = f"{root}{delete}"
+    delete_account = f"{root}{delete}{root}"
     volumes_tag = "volumes"
     agg_dates = f"{dates}total/"
     volumes = f"{root}{volumes_tag}"
@@ -88,6 +88,7 @@ class Paths(str, Enum):
     user = f"{root}{user_tag}"
     permissions_tag = "permissions"
     permissions = f"{root}{permissions_tag}"
+    password = f"{root}change_password{root}"
 
 
 class PricingImplementationTypes(str, ValidationEnum):
@@ -264,4 +265,8 @@ class LogMsg(str, ValidationEnum):
     account_not_found = "Account ID: {account_id} not found."
     no_account = "No account mapped to Client ID: {client_id}"
     acct_seq_created = "Account ID: {account_id} added to AccountSequenceTable"
-    created_perm = "Created permissions for: {perm} for following endpoint: {endpoints}"
+    created_perm = "Created permissions for: {perm}, method: {method} for following endpoint: {endpoints}"
+    changed_pass = "Password successfully updated for user: {username}"
+    changed_perm = "Updated permissions to: {perm} updated for user: {username}"
+    invalid_pass = "Authorization error. Invalid password"
+    del_perm = "Deleted the access for method: {method}, endpoint: {endpoint}, permission: {perm}"

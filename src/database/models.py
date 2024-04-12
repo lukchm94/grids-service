@@ -30,7 +30,6 @@ class ConfigTable(Base):
     def to_config(self) -> BaseConfigResp:
         package_size_option: str = self.package_size_option
         transport_option: str = self.transport_option
-
         return BaseConfigResp(
             account_id=self.account_id,
             valid_from=self.valid_from,
@@ -38,8 +37,12 @@ class ConfigTable(Base):
             pricing_type=self.pricing_type,
             config_type=self.config_type,
             group=self.group,
-            package_size_option=package_size_option.split(Deliminator.comma.value),
-            transport_option=transport_option.split(Deliminator.comma.value),
+            package_size_option=package_size_option.replace(
+                Deliminator.space.value, Deliminator.none.value
+            ).split(Deliminator.comma.value),
+            transport_option=transport_option.replace(
+                Deliminator.space.value, Deliminator.none.value
+            ).split(Deliminator.comma.value),
             frequency=self.frequency,
             deleted_at=self.deleted_at,
         )

@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, status
-from typing_extensions import Annotated, Doc
 
 
 class InvalidDayError(Exception):
@@ -301,3 +300,15 @@ class InvalidEmailError(HTTPException):
         headers: Dict[str, str] | None = None,
     ) -> None:
         super().__init__(status_code, detail, headers)
+
+
+class InvalidPermissionError(HTTPException):
+    def __init__(
+        self,
+        perm: str,
+        status_code: int = status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail: str = "Invalid permission. Add {perm} to database first",
+        headers: Dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code, detail, headers)
+        self.detail = self.detail.format(perm=perm)

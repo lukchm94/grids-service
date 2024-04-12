@@ -11,7 +11,7 @@ from __exceptions import (
     MissingGridsError,
 )
 from database.main import db_dependency
-from database.models import ConfigTable
+from database.models import AccountTable, ConfigTable
 from models.account import Account, AccountBaseReq
 from models.configs import BaseConfig, Config, ConfigReq, ConfigResp
 from models.query_req import DatesReq
@@ -33,7 +33,7 @@ class Getter:
         self.logger: Logger = logger
         self.db: db_dependency = db
 
-    def _get_account(self, client_id: int, dates_req: DatesReq = None) -> Account:
+    def _get_account(self, client_id: int, dates_req: DatesReq = None) -> AccountTable:
         account_controller = ClientAccountController(
             client_id=client_id, db=self.db, logger=self.logger
         )
@@ -101,7 +101,7 @@ class Getter:
         `return_elements` function.
         This return a list of complete Client Configurations with Grids (list[ConfigResp] object)
         """
-        account = self._get_account(client_id)
+        account: AccountTable = self._get_account(client_id)
         config_models: list[ConfigTable] = (
             self.db.query(ConfigTable)
             .filter(ConfigTable.account_id == account.account_id)

@@ -33,14 +33,14 @@ class User(BaseModel):
         permissions: list[str] = values.get("permissions")
 
         if not User._is_valid_email(email):
-            raise InvalidEmailError()
+            raise InvalidEmailError(email)
 
         if role not in Roles.list():
             raise InvalidInputError(role)
 
         for permission in permissions:
             if permission not in Permissions.list():
-                raise InvalidInputError(permissions)
+                raise InvalidInputError(permission)
 
         return values
 

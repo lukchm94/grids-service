@@ -1,6 +1,7 @@
 from logging import Logger
 
 from __app_configs import LogMsg, return_elements
+from __exceptions import MissingEndpointPermError
 from database.main import db_dependency
 from database.models import PermissionTable
 from models.permissions import Permission, PermissionReq
@@ -53,6 +54,36 @@ class Setter:
         self.db.commit()
         self.logger.info(
             LogMsg.created_perm.value.format(
-                perm=self.perm_req.permission, endpoints=self.perm_req.endpoints
+                perm=self.perm_req.permission,
+                method=self.perm_req.method,
+                endpoints=self.perm_req.endpoints,
             )
+        )
+
+
+class Delete:
+    logger: Logger
+    db: db_dependency
+
+    def __init__(self, logger: Logger, db: db_dependency) -> None:
+        self.logger: Logger = logger
+        self.db: db_dependency = db
+
+    def single_access(self, method: str, endpoint: str, perm: str) -> None:
+        access: PermissionTable = (
+            self.db.query(PermissionTable)
+            .filter(PermissionTable.method == method)
+            .filter(PermissionTable.endpoint == endpoint)
+            .filter(PermissionTable.permission == perm)
+            .first()
+        )
+        if access is None:
+            raise MissingEndpointPermError(endpoint, method)
+
+        self.db.query(PermissionTable).filter(PermissionTable.method == method).filter(
+            PermissionTable.endpoint == endpoint
+        ).filter(PermissionTable.permission == perm).delete()
+        self.db.commit()
+        self.logger.info(
+            LogMsg.del_perm.value.format(method=method, endpoint=endpoint, perm=perm)
         )

@@ -5,7 +5,7 @@ from auth.check_access import authorize
 from auth.main import user_dependency
 from database.main import db_dependency
 from models.permissions import PermissionReq
-from services.permissions.impl import Getter, Setter
+from services.permissions.impl import Delete, Getter, Setter
 from utils.logger import logger
 
 router = APIRouter(prefix=Paths.permissions.value, tags=[Paths.permissions_tag.value])
@@ -33,6 +33,14 @@ async def create_permission(
         logger.error(err)
 
 
-@router.put(Paths.root.value + "{perm}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_permission(db: db_dependency, perm: str = Path) -> None:
-    pass
+@router.delete(Paths.root.value + "{perm}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_permission(
+    user: user_dependency,
+    db: db_dependency,
+    req: Request,
+    endpoint: str,
+    method: str,
+    perm: str = Path,
+) -> None:
+    authorize(user, db, req.method, Paths.permissions.value + Paths.root.value)
+    Delete(logger, db).single_access(method, endpoint, perm)

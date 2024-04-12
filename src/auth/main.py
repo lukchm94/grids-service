@@ -1,3 +1,4 @@
+import base64
 import os
 from datetime import datetime, timedelta
 from typing import Annotated, Optional
@@ -52,6 +53,10 @@ class Token:
             access_token=token, token_type=TokenTypes.bearer.value, user=self.user
         )
         return user_with_token
+
+
+def encode_passwords(password: str) -> str:
+    return base64.b64encode(password.encode()).decode()
 
 
 # Dependency to get the Logged User

@@ -21,5 +21,4 @@ def generate_token(
     )
     if user is None:
         raise UserNotFoundError(form_data.username)
-
     return Token(user).generate_token()
