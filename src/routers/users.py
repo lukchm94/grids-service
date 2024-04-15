@@ -14,10 +14,10 @@ router = APIRouter(prefix=Paths.user.value, tags=[Paths.user_tag.value])
 @router.get(Paths.root.value + "{username}", status_code=status.HTTP_200_OK)
 async def get_users(
     db: db_dependency, user: user_dependency, req: Request, username: str
-) -> dict:
+):
     authorize(user, db, req.method, Paths.user.value + Paths.root.value)
     try:
-        return Getter(logger, db).get_user_by_username(username)
+        return Getter(logger, db).user_by_username(username)
     except Exception as err:
         logger.error(err)
 

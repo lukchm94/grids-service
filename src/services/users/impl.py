@@ -16,7 +16,7 @@ class Getter:
         self.logger: Logger = logger
         self.db: db_dependency = db
 
-    def get_user_by_username(self, username: str) -> dict:
+    def user_by_username(self, username: str) -> dict:
         users: list[UsersTable] = (
             self.db.query(UsersTable).filter(UsersTable.username == username).all()
         )
@@ -24,7 +24,7 @@ class Getter:
             raise UserNotFoundError(username)
         return return_elements([user.to_user() for user in users])
 
-    def get_user(self, username: str, password: str) -> User:
+    def user(self, username: str, password: str) -> User:
         user = (
             self.db.query(UsersTable)
             .filter(UsersTable.username == username)

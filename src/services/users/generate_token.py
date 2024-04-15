@@ -16,7 +16,7 @@ def generate_token(
     logger: Logger,
     db: db_dependency,
 ) -> UserWithToken:
-    user: User = Getter(logger, db).get_user(
+    user: User = Getter(logger, db).user(
         username=form_data.username, password=form_data.password
     )
     if user is None:

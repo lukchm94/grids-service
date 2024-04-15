@@ -20,7 +20,7 @@ router = APIRouter(prefix=Paths.acct.value, tags=[Paths.account_tag.value])
 async def get_all_accounts_by_client_id(
     db: db_dependency, user: user_dependency, req: Request, id: int = Path(gt=0)
 ):
-    authorize(user, req.method, Paths.acct.value + Paths.all_acct_by_client.value)
+    authorize(user, db, req.method, Paths.acct.value + Paths.all_acct_by_client.value)
     try:
         return Getter(logger, db).all_accounts_by_client_id(id)
 
