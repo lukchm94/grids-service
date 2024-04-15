@@ -1,7 +1,7 @@
 version: '3.3'
 
 services:
-    solution_db:
+    db:
         image: mysql:latest
         platform: linux/x86_64
         environment:
@@ -9,4 +9,38 @@ services:
             MYSQL_ROOT_PASSWORD: 'app_dev'
         ports:
             - '3306:3306'
+        volumes:
+            - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+            - db-grids-service-data:/var/lib/mysql
         restart: unless-stopped
+        networks:
+            - grid_service_network
+
+    grids-service:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        env_file:
+            - ./src/.env
+        ports:
+            - '8000:8000'
+        volumes:
+            - .:/grids-service-python
+        depends_on:
+            - db  # Ensure that db service starts before grids-service
+        networks:
+            - grid_service_network
+        command: 
+            - uvicorn
+            - src.server.main:app
+            - --host
+            - grids-service
+            - --port
+            - '8000'
+        
+volumes:
+    db-grids-service-data:
+    grids-service-python:
+
+networks:
+    grid_service_network:

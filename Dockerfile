@@ -1,26 +1,30 @@
-# Builder container uses pdm to install dependencies
-FROM python:3.11 AS builder
-
-ENV PDM_VERSION=2.12.2
-
-WORKDIR /build
-COPY pdm.lock pyproject.toml ./
-RUN python -m pip install --upgrade pip setuptools wheel
-RUN pip install pdm && pdm install --prod --no-lock --no-editable
-
-# Fresh container that does not have the build tool pdm
-# Also using the slim image to save image size
+# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
+# Copy application code and dependency files
+COPY ./src /app/src
+COPY ./pyproject.toml /app
+COPY ./pdm.lock /app
+
+# Set the working directory in the container
 WORKDIR /app
-COPY . /app
 
-# Copy installed dependencies and binaries from the build container,
-# and append to PYTHONPATH and PATH respectively
-COPY --from=builder /build/__pypackages__/3.11/lib lib
-COPY --from=builder /build/__pypackages__/3.11/bin bin
+# Create and activate the virtual environment
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-ENV PYTHONPATH "/app/lib"
-ENV PATH "/app/bin:{$PATH}"
+# Install PDM
+RUN pip install pdm
+RUN pdm install
 
-CMD [ "uvicorn", "src.server.main:app", "--host", "127.0.0.1", "--port", "3306" ]
+# Expose port 8000 for FastAPI
+EXPOSE 8000
+
+# Install MySQL client
+# RUN apt-get update && apt-get install -y default-mysql-client
+
+# # Copy SQL initialization script
+# COPY ./src/database/init.sql /docker-entrypoint-initdb.d/init.sql
+
+# Command to run the FastAPI application
+CMD ["uvicorn", "src.server.main:app", "--host", "grids-service", "--port", "8000", "--reload"]
